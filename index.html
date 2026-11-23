@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rockchip USB DTS Configurator V1.1.1</title>
+<title>Rockchip USB DTS Configurator V1.1.2</title>
 <style>
 :root {
     --bg-window: #ffffff;
@@ -143,7 +143,7 @@ input[type=checkbox]:disabled{opacity:0.3!important;cursor:not-allowed!important
 <div class="dtc"><pre class="dtt" id="dtsCode" spellcheck="false"><code id="dtsText">// 请先选择主控芯片和 USB 端口</code></pre>
   <div id="welcome">
     <div style="text-align:center;padding:20px">
-      <div style="font-size:22px;font-weight:700;color:var(--text-primary);margin-bottom:4px">USB DTS Configurator <span style="font-size:13px;color:var(--text-muted)">V1.1.1</span></div>
+      <div style="font-size:22px;font-weight:700;color:var(--text-primary);margin-bottom:4px">USB DTS Configurator <span style="font-size:13px;color:var(--text-muted)">V1.1.2</span></div>
       <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px">Rockchip USB 模块 DTS 配置工具</div>
       <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;margin-bottom:20px;text-align:left;max-width:500px;margin-left:auto;margin-right:auto">
         USB 模块的软件配置应严格根据硬件设计来配置。
@@ -175,7 +175,7 @@ input[type=checkbox]:disabled{opacity:0.3!important;cursor:not-allowed!important
 <div class="dst" id="dtsStats"></div>
 </div>
 </div>
-<div class="sb-bar"><span id="stBar">就绪</span><span style="font-size:11px;color:var(--text-muted)">版本 V1.1.1</span></div>
+<div class="sb-bar"><span id="stBar">就绪</span><span style="font-size:11px;color:var(--text-muted)">版本 V1.1.2</span></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -185,6 +185,29 @@ input[type=checkbox]:disabled{opacity:0.3!important;cursor:not-allowed!important
 // 1. 数据
 // ═══════════════════════════════════════════════
 const SOC_DATA = {
+  "RK312X": {
+    "arch": "",
+    "desc": "",
+    "ports": [
+      {"name": "USBOTG / Micro-USB2.0 OTG", "node": "", "desc": "Micro-USB2.0 OTG", "dts": "/* Micro-USB 座子带 ID 脚，dr_mode = \"otg\" 按 ID 自动切换 Host / Device */\n\n/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* OTG PHY：Host 模式打开 VBUS，Device 模式关闭 */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例\n * **注意：VBUS 由 PMIC 直接供电时不需要这颗 regulator，也不要配 vbus-supply**\n */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* USB2.0 OTG 控制器 */\n&usb_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb2 {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <RK_GPIO0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG / Type-A USB2.0 OTG", "node": "", "desc": "Type-A USB2.0 OTG", "dts": "/* Type-A 没有 ID 脚，靠 VBUS 检测识别 Device 插入\n * **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态**\n * **注意：要切 Host 用 otg_mode 软切换：echo host > /sys/devices/platform/20008000.syscon/20008000.syscon:usb2-phy@17c/otg_mode**\n */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* OTG PHY：Host 模式输出 VBUS */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* USB2.0 OTG 控制器 */\n&usb_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb2 {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <RK_GPIO0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* 固定 Host：dr_mode = \"host\" */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* Host 模式要输出 VBUS，所以 OTG 口也配 vbus-supply */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* USB2.0 OTG 控制器固定 Host */\n&usb_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb2 {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <RK_GPIO0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* 固定 Device：dr_mode = \"peripheral\"\n * **注意：Device 模式不要配 vbus-supply；有热插拔需求时 vbus 需经分压接到 vbusdet 引脚**\n */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* 只使能 OTG PHY，不配 VBUS */\n&u2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 OTG 控制器固定 Device */\n&usb_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};"},
+      {"name": "HOST0 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* EHCI + OHCI 共用 u2phy_host\n * **注意：Host 口用 phy-supply 控 VBUS，u2phy_host 不支持 vbus-supply**\n */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* Host PHY：phy-supply 由 USB core 在 phy_power_on 时打开 */\n&u2phy_host {\n\tstatus = \"okay\";\n\tphy-supply = <&vcc5v0_host>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A1 为例 */\nvcc5v0_host: vcc5v0-host-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_host\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_host_en>;\n};\n\n/* USB2.0 EHCI 控制器：USB2.0 高速/全速 */\n&usb_host_ehci {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 OHCI 控制器：USB1.1 全速/低速 */\n&usb_host_ohci {\n\tstatus = \"okay\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb2 {\n\t\tvcc5v0_host_en: vcc5v0-host-en {\n\t\t\trockchip,pins = <RK_GPIO0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+    ]
+  },
+  "RK3288": {
+    "arch": "",
+    "desc": "",
+    "ports": [
+      {"name": "USBOTG / Type-A USB2.0 OTG", "node": "", "desc": "Type-A USB2.0 OTG", "dts": "/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */\n&usbphy {\n\tstatus = \"okay\";\n};\n\n/* USB PHY 子节点，对应 OTG 口 */\n&usbphy0 {\n\tstatus = \"okay\";\n};\n\n/* VBUS / ID / VBUS 检测控制（GRF 寄存器 + 中断）\n * otg_drv_gpio：OTG 口 VBUS 使能，驱动 probe 时拉低（不输出），进 Host 模式时拉高\n * 请根据原理图修改，这里以 GPIO0_B4（即 gpio0 12）为例\n * **注意：驱动用 gpio_direction_output 直接给电平，GPIO_ACTIVE_HIGH/LOW 不参与换算，1 = 输出 5V**\n */\n&dwc_control_usb {\n\tstatus = \"okay\";\n\totg_drv_gpio = <&gpio0 12 GPIO_ACTIVE_HIGH>;\n};\n\n/* USB 控制器配置：dwc_otg_310 驱动\n * rockchip,usb-mode：0 = Device/Host 双角色（按 ID/VBUS 自动切换），1 = 强制 Host，2 = 强制 Device\n * compatible/clocks/resets 按 SDK 默认值给出，请与实际 SDK/板级确认\n */\n&usb_otg {\n\tstatus = \"okay\";\n\tcompatible = \"rockchip,rk3288_usb20_otg\";\n\tclocks = <&usbphy0>, <&cru HCLK_OTG0>;\n\tclock-names = \"clk_usbphy0\", \"hclk_usb0\";\n\tresets = <&cru SRST_USBOTG_AHB>,\n\t\t <&cru SRST_USBOTG_PHY>,\n\t\t <&cru SRST_USBOTG_CON>;\n\treset-names = \"otg_ahb\", \"otg_phy\", \"otg_controller\";\n\trockchip,usb-mode = <0>;\n};"},
+      {"name": "USBOTG / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* 把 OTG 口固定成 Host：dwc_otg_310 驱动用 rockchip,usb-mode = <1>\n * dwc2 驱动路径则改成 dr_mode = \"host\"\n */\n\n/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */\n&usbphy {\n\tstatus = \"okay\";\n};\n\n/* USB PHY 子节点，对应 OTG 口 */\n&usbphy0 {\n\tstatus = \"okay\";\n};\n\n/* Host 模式需要输出 VBUS，所以 OTG 口也要配 otg_drv_gpio，请根据原理图修改，这里以 GPIO0_B4（即 gpio0 12）为例 */\n&dwc_control_usb {\n\tstatus = \"okay\";\n\totg_drv_gpio = <&gpio0 12 GPIO_ACTIVE_HIGH>;\n};\n\n/* 强制 Host only */\n&usb_otg {\n\tstatus = \"okay\";\n\trockchip,usb-mode = <1>;\n};"},
+      {"name": "USBOTG / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* 只做 Device：dwc_otg_310 驱动用 rockchip,usb-mode = <2>\n * **注意：Device 模式不要配 otg_drv_gpio，避免对外输出 5V 与外部 Host 冲突**\n */\n\n/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */\n&usbphy {\n\tstatus = \"okay\";\n};\n\n/* USB PHY 子节点，对应 OTG 口 */\n&usbphy0 {\n\tstatus = \"okay\";\n};\n\n/* 强制 Device only */\n&usb_otg {\n\tstatus = \"okay\";\n\trockchip,usb-mode = <2>;\n};"},
+      {"name": "USBOTG / Micro-USB2.0", "node": "", "desc": "Micro-USB2.0", "dts": "/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */\n&usbphy {\n\tstatus = \"okay\";\n};\n\n/* USB PHY 子节点，对应 OTG 口 */\n&usbphy0 {\n\tstatus = \"okay\";\n};\n\n/* VBUS / ID / VBUS 检测控制（GRF 寄存器 + 中断）\n * otg_drv_gpio：OTG 口 VBUS 使能，驱动 probe 时拉低（不输出），进 Host 模式时拉高\n * 请根据原理图修改，这里以 GPIO0_B4（即 gpio0 12）为例\n * **注意：驱动用 gpio_direction_output 直接给电平，GPIO_ACTIVE_HIGH/LOW 不参与换算，1 = 输出 5V**\n */\n&dwc_control_usb {\n\tstatus = \"okay\";\n\totg_drv_gpio = <&gpio0 12 GPIO_ACTIVE_HIGH>;\n};\n\n/* USB 控制器配置：dwc_otg_310 驱动\n * rockchip,usb-mode：0 = Device/Host 双角色（按 ID/VBUS 自动切换），1 = 强制 Host，2 = 强制 Device\n * compatible/clocks/resets 按 SDK 默认值给出，请与实际 SDK/板级确认\n */\n&usb_otg {\n\tstatus = \"okay\";\n\tcompatible = \"rockchip,rk3288_usb20_otg\";\n\tclocks = <&usbphy0>, <&cru HCLK_OTG0>;\n\tclock-names = \"clk_usbphy0\", \"hclk_usb0\";\n\tresets = <&cru SRST_USBOTG_AHB>,\n\t\t <&cru SRST_USBOTG_PHY>,\n\t\t <&cru SRST_USBOTG_CON>;\n\treset-names = \"otg_ahb\", \"otg_phy\", \"otg_controller\";\n\trockchip,usb-mode = <0>;\n};"},
+      {"name": "HOST0 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* 本口 = EHCI + OHCI，两者共用 usbphy1，物理上是 HOST1 口（HOST1_DP/DM）\n * rockchip-relinquish-port 是 RK3288 的 quirk：清 PORT_OWNER 位，把低速/全速设备交给 OHCI 处理\n */\n\n/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */\n&usbphy {\n\tstatus = \"okay\";\n};\n\n/* USB PHY 子节点，对应 EHCI/OHCI 口（物理 HOST1） */\n&usbphy1 {\n\tstatus = \"okay\";\n};\n\n/* Host 口 VBUS 使能，请根据原理图修改，这里以 GPIO0_B6（即 gpio0 14）为例 */\n&dwc_control_usb {\n\thost_drv_gpio = <&gpio0 14 GPIO_ACTIVE_HIGH>;\n};\n\n/* USB2.0 EHCI 控制器，支持 USB2.0 高速/全速 */\n&usb_host0_ehci {\n\tstatus = \"okay\";\n\trockchip-relinquish-port;\n};\n\n/* USB2.0 OHCI 控制器，支持 USB1.1 全速/低速设备 */\n&usb_host0_ohci {\n\tstatus = \"okay\";\n};"},
+      {"name": "HOST1 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* 本口 = 独立 DWC2 Host-only 控制器，物理上是 HOST2 口（HOST2_DP/DM）\n */\n\n/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */\n&usbphy {\n\tstatus = \"okay\";\n};\n\n/* USB PHY 子节点，对应 DWC2 Host-only 口（物理 HOST2） */\n&usbphy2 {\n\tstatus = \"okay\";\n};\n\n/* Host 口 VBUS 使能，请根据原理图修改，这里以 GPIO0_B6（即 gpio0 14）为例 */\n&dwc_control_usb {\n\thost_drv_gpio = <&gpio0 14 GPIO_ACTIVE_HIGH>;\n};\n\n/* USB 控制器配置：DWC2 Host only（dtsi 默认就是 dr_mode = \"host\"，保持默认即可） */\n&usb_host1 {\n\tstatus = \"okay\";\n};"},
+    ]
+  },
   "RK3308": {
     "arch": "",
     "desc": "",
@@ -207,6 +230,18 @@ const SOC_DATA = {
       {"name": "USBOTG / Type-C USB2.0 无 CC 芯片 DEVICE", "node": "", "desc": "Type-C USB2.0 无 CC 芯片 DEVICE", "dts": "/* 该配置用于硬件电路不带外置 Type-C 控制器芯片，只支持 device 模式，硬件上 CC 脚需要接 5.1K 下拉电阻 */\n/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * 不要配置 vbus-supply，避免 Device 模式对外输出 5V 与外部 Host 冲突\n */\n&u2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n * dr_mode = \"peripheral\" 固定为 Device\n */\n&usb20_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};"},
       {"name": "USBOTG / Micro-USB2.0", "node": "", "desc": "Micro-USB2.0", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * vbus-supply：Host mode 时打开 VBUS，Device mode 时关闭 VBUS\n */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* USB 控制器配置 */\n&usb20_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 5V regulator，由 GPIO 控制负载开关 */\nvcc5v0_otg: vcc5v0-otg {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBHOST / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/*\n * 下面按 RK3326 EVB 的电源路径（RK809 SWITCH_REG1，label vcc5v0_host）写；\n * 若客户板 VBUS 由 GPIO 控制，改为自定义 regulator-fixed 并把 phy-supply 指向它；\n * VBUS 常供电则删除 phy-supply\n */\n\n/* USB2.0 EHCI 控制器，支持 USB2.0 高速/全速 */\n&usb_host0_ehci {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 OHCI 控制器，支持 USB1.1 全速/低速设备 */\n&usb_host0_ohci {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY 配置（与 OTG 口共用） */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY HOST 端口配置\n * phy-supply 由 PHY 框架解析，phy_power_on 时打开 VBUS\n */\n&u2phy_host {\n\tstatus = \"okay\";\n\tphy-supply = <&vcc5v0_host>;\n};"},
+    ]
+  },
+  "RK3328": {
+    "arch": "",
+    "desc": "",
+    "ports": [
+      {"name": "OTG20 / Micro-USB2.0 OTG", "node": "", "desc": "Micro-USB2.0 OTG", "dts": "/* Micro-USB 座子带 ID 脚，dr_mode = \"otg\" 按 ID 自动切换 Host / Device */\n\n/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* OTG PHY：vbus-supply 在 Host 模式打开 VBUS，Device 模式关闭 */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* USB2.0 OTG 控制器 */\n&usb20_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "OTG20 / Type-A USB2.0 OTG", "node": "", "desc": "Type-A USB2.0 OTG", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* OTG PHY：Host 模式输出 VBUS */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* USB2.0 OTG 控制器 */\n&usb20_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "OTG20 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* Host 模式要输出 VBUS，所以 OTG 口也配 vbus-supply */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* USB2.0 OTG 控制器固定 Host */\n&usb20_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "OTG20 / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* **注意：Device 模式不要配 vbus-supply；有热插拔需求时 vbus 需经分压接到 vbusdet 引脚** */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* 只使能 OTG PHY，不配 VBUS */\n&u2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 OTG 控制器固定 Device */\n&usb20_otg {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};"},
+      {"name": "HOST0 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* EHCI + OHCI 共用 u2phy_host\n * **注意：Host 口用 phy-supply 控 VBUS，u2phy_host 不支持 vbus-supply**\n */\n\n/* USB2.0 PHY 父节点 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* Host PHY：phy-supply 由 USB core 在 phy_power_on 时打开 */\n&u2phy_host {\n\tstatus = \"okay\";\n\tphy-supply = <&vcc5v0_host>;\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_D0 为例 */\nvcc5v0_host: vcc5v0-host-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_host\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PD0 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_host_en>;\n};\n\n/* USB2.0 EHCI 控制器：USB2.0 高速/全速 */\n&usb_host0_ehci {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 OHCI 控制器：USB1.1 全速/低速 */\n&usb_host0_ohci {\n\tstatus = \"okay\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_host_en: vcc5v0-host-en {\n\t\t\trockchip,pins = <0 RK_PD0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USB30 / Type-A USB3.0 HOST", "node": "", "desc": "Type-A USB3.0 HOST", "dts": "/* Type-A 座子只能做 Host\n * u3phy_utmi 走 USB2.0 差分，u3phy_pipe 走 USB3.0 超速差分，两个子节点都要使能\n */\n\n/* USB3.0 PHY 父节点：vbus-supply 在 phy_power_on 时打开 VBUS */\n&u3phy {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_usb30>;\n};\n\n/* USB3.0 PHY 的 UTMI（USB2.0 部分）子节点 */\n&u3phy_utmi {\n\tstatus = \"okay\";\n};\n\n/* USB3.0 PHY 的 PIPE（USB3.0 部分）子节点 */\n&u3phy_pipe {\n\tstatus = \"okay\";\n};\n\n/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A0 为例 */\nvcc5v0_usb30: vcc5v0-usb30-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_usb30\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_usb30_en>;\n};\n\n/* USB3.0 控制器（DWC3）父节点 */\n&usbdrd3 {\n\tstatus = \"okay\";\n};\n\n/* DWC3 控制器：默认就是 host，Type-A 保持默认 */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_usb30_en: vcc5v0-usb30-en {\n\t\t\trockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
     ]
   },
   "RK3399": {
@@ -247,13 +282,13 @@ const SOC_DATA = {
     "arch": "",
     "desc": "",
     "ports": [
-      {"name": "USBOTG0 / Type-A USB2.0 OTG", "node": "", "desc": "Type-A USB2.0 OTG", "dts": "/* **注意：RK3506G 没有引出 PHY 的 VBUSDET 引脚，用 GPIO 检测 VBUS 电平变化** */\n\n/* VBUS 检测：GPIO + extcon-usb-gpio\n * 硬件对 VBUS 做了三极管反相处理，所以必须配成 GPIO_ACTIVE_LOW\n */\nextcon_usb: extcon-usb {\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus>;\n\tstatus = \"okay\";\n};\n\n/* VBUS 5V regulator 配置\n * USB2.0 PHY 驱动通过 GPIO 控制负载开关：Host mode 输出 5V，Device mode 关闭\n */\nvcc5v0_otg0: vcc5v0-otg0-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg0\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg0_en>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态\n */\n&usb2phy {\n\textcon = <&extcon_usb>;\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态取自 GPIO extcon，不再用 PHY 内部 VBUSDET\n * vbus-supply：Host mode 时打开 VBUS\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg0>;\n\trockchip,gpio-vbus-det;\n};\n\n/* USB 控制器配置\n * dr_mode=\"otg\"，支持软件切换 Device / Host mode\n * RK3506G 的软件切换指令：\n *   echo host > /sys/devices/platform/ff2b0000.usb2-phy/otg_mode\n *   echo peripheral  > /sys/devices/platform/ff2b0000.usb2-phy/otg_mode\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 检测脚与 VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\n\t\tvcc5v0_otg0_en: vcc5v0-otg0-en {\n\t\t\trockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG0 / Type-A USB2.0 OTG", "node": "", "desc": "Type-A USB2.0 OTG", "dts": "/* **注意：RK3506G 没有引出 PHY 的 VBUSDET 引脚，用 GPIO 检测 VBUS 电平变化** */\n\n/* VBUS 检测：GPIO + extcon-usb-gpio\n * 硬件对 VBUS 做了三极管反相处理，所以必须配成 GPIO_ACTIVE_LOW\n */\nextcon_usb: extcon-usb {\n\tstatus = \"okay\";\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus>;\n};\n\n/* VBUS 5V regulator 配置\n * USB2.0 PHY 驱动通过 GPIO 控制负载开关：Host mode 输出 5V，Device mode 关闭\n */\nvcc5v0_otg0: vcc5v0-otg0-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg0\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg0_en>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态\n */\n&usb2phy {\n\tstatus = \"okay\";\n\textcon = <&extcon_usb>;\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态取自 GPIO extcon，不再用 PHY 内部 VBUSDET\n * vbus-supply：Host mode 时打开 VBUS\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg0>;\n\trockchip,gpio-vbus-det;\n};\n\n/* USB 控制器配置\n * dr_mode=\"otg\"，支持软件切换 Device / Host mode\n * RK3506G 的软件切换指令：\n *   echo host > /sys/devices/platform/ff2b0000.usb2-phy/otg_mode\n *   echo peripheral  > /sys/devices/platform/ff2b0000.usb2-phy/otg_mode\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 检测脚与 VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\n\t\tvcc5v0_otg0_en: vcc5v0-otg0-en {\n\t\t\trockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBOTG0 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* VBUS 5V regulator 配置\n * USB2.0 PHY 驱动通过 GPIO 控制负载开关，Host mode 下输出 5V\n * 若 VBUS 常供电，请删除 vbus-supply 那一行以及下面的 regulator、pinctrl 两段\n */\nvcc5v0_otg0: vcc5v0-otg0-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg0\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg0_en>;\n};\n\n/* USB2.0 PHY 父节点 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * vbus-supply：host 模式下 PHY 驱动在 probe 阶段就会打开 VBUS regulator\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg0>;\n};\n\n/* USB 控制器配置\n * dr_mode = \"host\" 固定为 Host only\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg0_en: vcc5v0-otg0-en {\n\t\t\trockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
-      {"name": "USBOTG0 / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* **注意：RK3506G 没有引出 PHY 的 VBUSDET 引脚，用 GPIO 检测 VBUS 电平变化，Device 模式才能识别连接/断开** */\n\n/* VBUS 检测：GPIO + extcon-usb-gpio\n * 硬件对 VBUS 做了三极管反相处理，所以必须配成 GPIO_ACTIVE_LOW\n * 不做这路检测（改用 rockchip,vbus-always-on）时，Device 模式识别不到拔出\n */\nextcon_usb: extcon-usb {\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus>;\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY 父节点\n * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态\n */\n&usb2phy {\n\textcon = <&extcon_usb>;\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态取自 GPIO extcon，不再用 PHY 内部 VBUSDET\n * **注意：Device 模式不要配 vbus-supply，避免对外输出 5V 与外部 Host 冲突**\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\trockchip,gpio-vbus-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"peripheral\" 固定为 Device only\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};\n\n/* VBUS 检测脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG0 / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* **注意：RK3506G 没有引出 PHY 的 VBUSDET 引脚，用 GPIO 检测 VBUS 电平变化，Device 模式才能识别连接/断开** */\n\n/* VBUS 检测：GPIO + extcon-usb-gpio\n * 硬件对 VBUS 做了三极管反相处理，所以必须配成 GPIO_ACTIVE_LOW\n * 不做这路检测（改用 rockchip,vbus-always-on）时，Device 模式识别不到拔出\n */\nextcon_usb: extcon-usb {\n\tstatus = \"okay\";\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态\n */\n&usb2phy {\n\tstatus = \"okay\";\n\textcon = <&extcon_usb>;\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态取自 GPIO extcon，不再用 PHY 内部 VBUSDET\n * **注意：Device 模式不要配 vbus-supply，避免对外输出 5V 与外部 Host 冲突**\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\trockchip,gpio-vbus-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"peripheral\" 固定为 Device only\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};\n\n/* VBUS 检测脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBOTG0 / Type-A USB2.0 DEVICE - VBUS 常供电", "node": "", "desc": "Type-A USB2.0 DEVICE - VBUS 常供电", "dts": "/* OTG0 只做 Device，VBUS 常供电、不做 GPIO 检测（Type-A / Micro-USB / Type-C 座子都可直接用）\n * **注意：没有 VBUS 检测时 Device 模式识别不到拔出，必须加 rockchip,vbus-always-on**\n * 该属性会关闭 PHY 的充电检测与动态 suspend；需要识别插拔请用 Type-A USB2.0 DEVICE\n */\n\n/* USB2.0 PHY 父节点 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,vbus-always-on：不做 VBUS 检测，PHY 保持常开\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\trockchip,vbus-always-on;\n};\n\n/* USB 控制器配置\n * dr_mode = \"peripheral\" 固定为 Device only\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};"},
-      {"name": "USBOTG0 / Micro-USB2.0 OTG", "node": "", "desc": "Micro-USB2.0 OTG", "dts": "/* **注意：RK3506G 没有引出 VBUSDET 和 ID 引脚，用 GPIO 检测 VBUSDET 和 ID 电平变化** */\n\n/* VBUS 与 ID 检测：GPIO + extcon-usb-gpio\n * VBUS 经三极管反相，配 GPIO_ACTIVE_LOW\n * ID 检测脚默认需要内部弱上拉（Device），所以 pinctrl 用 pcfg_pull_up，\n * ID 悬空/内部上拉为 Device，被 OTG 转接线拉到 GND 为 Host\n * 且 pinctrl-names 必须写成 \"default\"，否则上拉配置不生效\n */\nextcon_usb: extcon-usb {\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tid-gpio = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus &usb_extcon_id>;\n\tstatus = \"okay\";\n};\n\n/* VBUS 5V regulator 配置\n * USB2.0 PHY 驱动通过 GPIO 控制负载开关：Host mode 输出 5V，Device mode 关闭\n */\nvcc5v0_otg0: vcc5v0-otg0-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg0\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg0_en>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：GPIO 检测到的 VBUS / ID 状态交给 usb2phy 驱动\n */\n&usb2phy {\n\textcon = <&extcon_usb>;\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态来自 GPIO\n * rockchip,gpio-id-det：ID 状态来自 GPIO，插 OTG 转接线（ID 拉低）自动切 Host，\n * 拔出（ID 回高）自动切回 Device\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg0>;\n\trockchip,gpio-vbus-det;\n\trockchip,gpio-id-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"otg\"：按 ID 自动切换 Device / Host\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 检测脚、ID 检测脚与 VBUS 控制脚 pinctrl 配置\n * ID 默认要内部拉高，对应 Device mode\n */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\n\t\tusb_extcon_id: usb-extcon-id {\n\t\t\trockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\n\t\tvcc5v0_otg0_en: vcc5v0-otg0-en {\n\t\t\trockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
-      {"name": "USBOTG0 / Type-C USB2.0 无 CC 芯片 OTG", "node": "", "desc": "Type-C USB2.0 无 CC 芯片 OTG", "dts": "/* **注意：RK3506G 没有引出 VBUSDET 和 ID 引脚，用 GPIO 检测 VBUSDET 和 ID 电平变化** */\n/* **注意：该配置用于 Type-C 口不带 CC 芯片，需增加 CC to ID 电平转换电路** */\n\n/* VBUS 与 ID 检测：GPIO + extcon-usb-gpio\n * VBUS 经三极管反相，配 GPIO_ACTIVE_LOW\n * ID 检测脚默认需要内部弱上拉（Device），所以 pinctrl 用 pcfg_pull_up，\n * ID 悬空/内部上拉为 Device，被 OTG 转接线拉到 GND 为 Host\n * 且 pinctrl-names 必须写成 \"default\"，否则上拉配置不生效\n */\nextcon_usb: extcon-usb {\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tid-gpio = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus &usb_extcon_id>;\n\tstatus = \"okay\";\n};\n\n/* VBUS 5V regulator 配置\n * USB2.0 PHY 驱动通过 GPIO 控制负载开关：Host mode 输出 5V，Device mode 关闭\n */\nvcc5v0_otg0: vcc5v0-otg0-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg0\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg0_en>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：GPIO 检测到的 VBUS / ID 状态交给 usb2phy 驱动\n */\n&usb2phy {\n\textcon = <&extcon_usb>;\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态来自 GPIO\n * rockchip,gpio-id-det：ID 状态来自 GPIO，插 OTG 转接线（ID 拉低）自动切 Host，\n * 拔出（ID 回高）自动切回 Device\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg0>;\n\trockchip,gpio-vbus-det;\n\trockchip,gpio-id-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"otg\"：按 ID 自动切换 Device / Host\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 检测脚、ID 检测脚与 VBUS 控制脚 pinctrl 配置\n * ID 默认要内部拉高，对应 Device mode\n */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\n\t\tusb_extcon_id: usb-extcon-id {\n\t\t\trockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\n\t\tvcc5v0_otg0_en: vcc5v0-otg0-en {\n\t\t\trockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
-      {"name": "USBOTG0 / Type-C USB2.0 无 CC 芯片 DEVICE", "node": "", "desc": "Type-C USB2.0 无 CC 芯片 DEVICE", "dts": "/* Type-C 口不带 CC 芯片：CC1/CC2 各接 5.1K 下拉电阻，只支持 Device\n * **注意：RK3506G 没有引出 PHY 的 VBUSDET 引脚，用 GPIO 检测 VBUS 电平变化，Device 模式才能识别连接/断开**\n */\n\n/* VBUS 检测：GPIO + extcon-usb-gpio\n * 检测脚 GPIO1_C5（RK3506G EVB1），硬件经三极管反相，所以配成 GPIO_ACTIVE_LOW\n * 不做这路检测（改用 rockchip,vbus-always-on）时，Device 模式识别不到拔出\n */\nextcon_usb: extcon-usb {\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus>;\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY 父节点\n * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态\n */\n&usb2phy {\n\textcon = <&extcon_usb>;\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态取自 GPIO extcon，不再用 PHY 内部 VBUSDET\n * **注意：Device 模式不要配 vbus-supply，避免对外输出 5V 与外部 Host 冲突**\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\trockchip,gpio-vbus-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"peripheral\" 固定为 Device only\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};\n\n/* VBUS 检测脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG0 / Micro-USB2.0 OTG", "node": "", "desc": "Micro-USB2.0 OTG", "dts": "/* **注意：RK3506G 没有引出 VBUSDET 和 ID 引脚，用 GPIO 检测 VBUSDET 和 ID 电平变化** */\n\n/* VBUS 与 ID 检测：GPIO + extcon-usb-gpio\n * VBUS 经三极管反相，配 GPIO_ACTIVE_LOW\n * ID 检测脚默认需要内部弱上拉（Device），所以 pinctrl 用 pcfg_pull_up，\n * ID 悬空/内部上拉为 Device，被 OTG 转接线拉到 GND 为 Host\n * 且 pinctrl-names 必须写成 \"default\"，否则上拉配置不生效\n */\nextcon_usb: extcon-usb {\n\tstatus = \"okay\";\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tid-gpio = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus &usb_extcon_id>;\n};\n\n/* VBUS 5V regulator 配置\n * USB2.0 PHY 驱动通过 GPIO 控制负载开关：Host mode 输出 5V，Device mode 关闭\n */\nvcc5v0_otg0: vcc5v0-otg0-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg0\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg0_en>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：GPIO 检测到的 VBUS / ID 状态交给 usb2phy 驱动\n */\n&usb2phy {\n\tstatus = \"okay\";\n\textcon = <&extcon_usb>;\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态来自 GPIO\n * rockchip,gpio-id-det：ID 状态来自 GPIO，插 OTG 转接线（ID 拉低）自动切 Host，\n * 拔出（ID 回高）自动切回 Device\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg0>;\n\trockchip,gpio-vbus-det;\n\trockchip,gpio-id-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"otg\"：按 ID 自动切换 Device / Host\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 检测脚、ID 检测脚与 VBUS 控制脚 pinctrl 配置\n * ID 默认要内部拉高，对应 Device mode\n */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\n\t\tusb_extcon_id: usb-extcon-id {\n\t\t\trockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\n\t\tvcc5v0_otg0_en: vcc5v0-otg0-en {\n\t\t\trockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG0 / Type-C USB2.0 无 CC 芯片 OTG", "node": "", "desc": "Type-C USB2.0 无 CC 芯片 OTG", "dts": "/* **注意：RK3506G 没有引出 VBUSDET 和 ID 引脚，用 GPIO 检测 VBUSDET 和 ID 电平变化** */\n/* **注意：该配置用于 Type-C 口不带 CC 芯片，需增加 CC to ID 电平转换电路** */\n\n/* VBUS 与 ID 检测：GPIO + extcon-usb-gpio\n * VBUS 经三极管反相，配 GPIO_ACTIVE_LOW\n * ID 检测脚默认需要内部弱上拉（Device），所以 pinctrl 用 pcfg_pull_up，\n * ID 悬空/内部上拉为 Device，被 OTG 转接线拉到 GND 为 Host\n * 且 pinctrl-names 必须写成 \"default\"，否则上拉配置不生效\n */\nextcon_usb: extcon-usb {\n\tstatus = \"okay\";\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tid-gpio = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus &usb_extcon_id>;\n};\n\n/* VBUS 5V regulator 配置\n * USB2.0 PHY 驱动通过 GPIO 控制负载开关：Host mode 输出 5V，Device mode 关闭\n */\nvcc5v0_otg0: vcc5v0-otg0-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg0\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg0_en>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：GPIO 检测到的 VBUS / ID 状态交给 usb2phy 驱动\n */\n&usb2phy {\n\tstatus = \"okay\";\n\textcon = <&extcon_usb>;\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态来自 GPIO\n * rockchip,gpio-id-det：ID 状态来自 GPIO，插 OTG 转接线（ID 拉低）自动切 Host，\n * 拔出（ID 回高）自动切回 Device\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg0>;\n\trockchip,gpio-vbus-det;\n\trockchip,gpio-id-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"otg\"：按 ID 自动切换 Device / Host\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n};\n\n/* VBUS 检测脚、ID 检测脚与 VBUS 控制脚 pinctrl 配置\n * ID 默认要内部拉高，对应 Device mode\n */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\n\t\tusb_extcon_id: usb-extcon-id {\n\t\t\trockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\n\t\tvcc5v0_otg0_en: vcc5v0-otg0-en {\n\t\t\trockchip,pins = <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBOTG0 / Type-C USB2.0 无 CC 芯片 DEVICE", "node": "", "desc": "Type-C USB2.0 无 CC 芯片 DEVICE", "dts": "/* Type-C 口不带 CC 芯片：CC1/CC2 各接 5.1K 下拉电阻，只支持 Device\n * **注意：RK3506G 没有引出 PHY 的 VBUSDET 引脚，用 GPIO 检测 VBUS 电平变化，Device 模式才能识别连接/断开**\n */\n\n/* VBUS 检测：GPIO + extcon-usb-gpio\n * 检测脚 GPIO1_C5（RK3506G EVB1），硬件经三极管反相，所以配成 GPIO_ACTIVE_LOW\n * 不做这路检测（改用 rockchip,vbus-always-on）时，Device 模式识别不到拔出\n */\nextcon_usb: extcon-usb {\n\tstatus = \"okay\";\n\tcompatible = \"linux,extcon-usb-gpio\";\n\tvbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_extcon_vbus>;\n};\n\n/* USB2.0 PHY 父节点\n * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态\n */\n&usb2phy {\n\tstatus = \"okay\";\n\textcon = <&extcon_usb>;\n};\n\n/* USB2.0 PHY OTG 端口配置\n * rockchip,gpio-vbus-det：VBUS 状态取自 GPIO extcon，不再用 PHY 内部 VBUSDET\n * **注意：Device 模式不要配 vbus-supply，避免对外输出 5V 与外部 Host 冲突**\n */\n&u2phy_otg0 {\n\tstatus = \"okay\";\n\trockchip,gpio-vbus-det;\n};\n\n/* USB 控制器配置\n * dr_mode = \"peripheral\" 固定为 Device only\n */\n&usb20_otg0 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};\n\n/* VBUS 检测脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_extcon_vbus: usb-extcon-vbus {\n\t\t\trockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBOTG1 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* **官方说明：仅 OTG0 支持 BC1.2 充电检测与 Device 热拔插 disconnect 检测，因此 OTG1 只提供 Host 用法**\n * （《Rockchip Linux USB 开发指南》RK-KF-YF-096 表 1 Note 8）\n */\n\n/* VBUS 5V regulator 配置\n * regulator-boot-on + regulator-always-on：开机即输出 5V，不随 Host 模式开关\n */\nvcc5v0_otg1: vcc5v0-otg1-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg1\";\n\tregulator-boot-on;\n\tregulator-always-on;\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio1 RK_PD0 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg1_en>;\n};\n\n/* USB2.0 PHY 父节点 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * phy-supply：由 PHY 框架在 phy_power_on 时打开\n * 若希望按模式动态开关 VBUS，改成 vbus-supply = <&vcc5v0_otg1> 并去掉 always-on\n */\n&u2phy_otg1 {\n\tstatus = \"okay\";\n\tphy-supply = <&vcc5v0_otg1>;\n};\n\n/* USB 控制器配置\n * dr_mode = \"host\" 固定为 Host only\n */\n&usb20_otg1 {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg1_en: vcc5v0-otg1-en {\n\t\t\trockchip,pins = <1 RK_PD0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
     ]
   },
@@ -267,7 +302,7 @@ const SOC_DATA = {
       {"name": "OTG0 / Type-A USB2.0 OTG", "node": "", "desc": "Type-A USB2.0 OTG", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode=\"otg\" + extcon 才能支持软件切换 Device / Host mode\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\textcon = <&u2phy>;\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * vbus-supply 控制 VBUS 输出 5V 实现 VBUS 动态开关\n */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_usb_otg>;\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* VBUS regulator 配置，USB2.0 PHY 驱动通过 GPIO 控制 VBUS 输出 */\nvcc5v0_usb_otg: vcc5v0-usb-otg {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_usb_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_usb>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_otg_pwren>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_otg_pwren: usb-otg-pwren {\n\t\t\trockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "OTG0 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode = \"host\" 固定为 Host only\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * phy-supply 控制 VBUS 输出 5V，VBUS 常供电方案不用配置\n */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tphy-supply = <&vcc5v0_usb_otg>;\n};\n\n/* VBUS regulator 配置，USB2.0 PHY 驱动通过 GPIO 控制 VBUS 输出 */\nvcc5v0_usb_otg: vcc5v0-usb-otg {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_usb_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_usb>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_otg_pwren>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_otg_pwren: usb-otg-pwren {\n\t\t\trockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "OTG0 / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于识别连接/断开状态** */\n\n/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode = \"peripheral\" 固定为 Device only\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&u2phy_otg {\n\tstatus = \"okay\";\n};"},
-      {"name": "OTG0 / Type-C USB2.0 OTG FUSB302", "node": "", "desc": "Type-C USB2.0 OTG FUSB302", "dts": "/* VBUS regulator（RK817 PMIC 控制），在 FUSB302 驱动中通过 I2C 控制 VBUS 通断 */\n&i2c1 {\n\trk817: pmic@20 {\n\t\tregulators {\n\t\t\totg_switch: OTG_SWITCH {\n\t\t\t\tregulator-name = \"otg_switch\";\n\t\t\t\tregulator-state-mem {\n\t\t\t\t\tregulator-off-in-suspend;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 FUSB302 */\n&i2c0 {\n\tstatus = \"okay\";\n\n\tusbc0: fusb302@22 {\n\t\tcompatible = \"fcs,fusb302\";\n\t\treg = <0x22>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO1_C7 为例 */\n\t\tinterrupt-parent = <&gpio1>;\n\t\tinterrupts = <RK_PC7 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&usbc0_int>;\n\t\t/*\n\t\t * VBUS 配置\n\t\t * 本配置 VBUS 由 RK817 PMIC 的 OTG_SWITCH 控制（vbus-supply = <&otg_switch>）；\n\t\t * 若 VBUS 由 GPIO 控制，需改为 vbus-supply = <&vcc5v0_otg> 等自定义 regulator；\n\t\t * 若 VBUS 由 RK818 / BQ25700 等其他 charge IC 直出，可不配置 vbus-supply。\n\t\t */\n\t\tvbus-supply = <&otg_switch>;\n\t\tstatus = \"okay\";\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t * sink-pdos:\n\t\t\t * 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t * 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t * 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t */\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t * source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t * 主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t */\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode = \"otg\" + extcon 才能支持软件切换 Device / Host mode\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n * usb-role-switch 启用软件角色切换\n * port 节点用于 role-switch 端点绑定\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&u2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* FUSB311 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusbc0_int: usbc0-int {\n\t\t\trockchip,pins = <1 RK_PC7 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
+      {"name": "OTG0 / Type-C USB2.0 OTG FUSB302", "node": "", "desc": "Type-C USB2.0 OTG FUSB302", "dts": "/* VBUS regulator（RK817 PMIC 控制），在 FUSB302 驱动中通过 I2C 控制 VBUS 通断 */\n&i2c1 {\n\trk817: pmic@20 {\n\t\tregulators {\n\t\t\totg_switch: OTG_SWITCH {\n\t\t\t\tregulator-name = \"otg_switch\";\n\t\t\t\tregulator-state-mem {\n\t\t\t\t\tregulator-off-in-suspend;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 FUSB302 */\n&i2c0 {\n\tstatus = \"okay\";\n\n\tusbc0: fusb302@22 {\n\t\tstatus = \"okay\";\n\t\tcompatible = \"fcs,fusb302\";\n\t\treg = <0x22>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO1_C7 为例 */\n\t\tinterrupt-parent = <&gpio1>;\n\t\tinterrupts = <RK_PC7 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&usbc0_int>;\n\t\t/*\n\t\t * VBUS 配置\n\t\t * 本配置 VBUS 由 RK817 PMIC 的 OTG_SWITCH 控制（vbus-supply = <&otg_switch>）；\n\t\t * 若 VBUS 由 GPIO 控制，需改为 vbus-supply = <&vcc5v0_otg> 等自定义 regulator；\n\t\t * 若 VBUS 由 RK818 / BQ25700 等其他 charge IC 直出，可不配置 vbus-supply。\n\t\t */\n\t\tvbus-supply = <&otg_switch>;\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t * sink-pdos:\n\t\t\t * 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t * 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t * 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t */\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t * source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t * 主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t */\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode = \"otg\" + extcon 才能支持软件切换 Device / Host mode\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n * usb-role-switch 启用软件角色切换\n * port 节点用于 role-switch 端点绑定\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&u2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* FUSB311 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusbc0_int: usbc0-int {\n\t\t\trockchip,pins = <1 RK_PC7 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
       {"name": "OTG0 / Type-C USB2.0 无 CC 芯片 OTG", "node": "", "desc": "Type-C USB2.0 无 CC 芯片 OTG", "dts": "/* 该配置用于硬件电路不带外置 Type-C 控制器芯片，支持 OTG，需增加 CC to ID 电平转换电路 */\n/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode=\"otg\" + extcon 才能支持软件切换 Device / Host mode\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\textcon = <&u2phy>;\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * vbus-supply 控制 VBUS 输出 5V 实现 VBUS 动态开关\n */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_usb_otg>;\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* VBUS regulator 配置，USB2.0 PHY 驱动通过 GPIO 控制 VBUS 输出 */\nvcc5v0_usb_otg: vcc5v0-usb-otg {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_usb_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_usb>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_otg_pwren>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_otg_pwren: usb-otg-pwren {\n\t\t\trockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "OTG0 / Type-C USB2.0 无 CC 芯片 DEVICE", "node": "", "desc": "Type-C USB2.0 无 CC 芯片 DEVICE", "dts": "/* 该配置用于硬件电路不带外置 Type-C 控制器芯片，只支持 device 模式，硬件上 CC 脚需要接 5.1K 下拉电阻 */\n/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于识别连接/断开状态** */\n\n/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode = \"peripheral\" 固定为 Device only\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&u2phy_otg {\n\tstatus = \"okay\";\n};"},
       {"name": "OTG0 / Micro-USB2.0", "node": "", "desc": "Micro-USB2.0", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB 控制器父节点 */\n&usbdrd30 {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器子节点\n * dr_mode=\"otg\" + extcon 才能支持软件切换 Device / Host mode\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * phys 只引用 usb 2.0 phy\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usbdrd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\textcon = <&u2phy>;\n\tmaximum-speed = \"high-speed\";\n\tphys = <&u2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* USB2.0 PHY 配置 */\n&u2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n * vbus-supply 控制 VBUS 输出 5V 实现 VBUS 动态开关\n */\n&u2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_usb_otg>;\n};\n\n/* USB3.1 Combo PHY 禁用（仅使用 USB2.0） */\n&combphy_pu {\n\tstatus = \"disabled\";\n};\n\n/* VBUS regulator 配置，USB2.0 PHY 驱动通过 GPIO 控制 VBUS 输出 */\nvcc5v0_usb_otg: vcc5v0-usb-otg {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_usb_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_usb>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&usb_otg_pwren>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tusb_otg_pwren: usb-otg-pwren {\n\t\t\trockchip,pins = <0 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
@@ -335,8 +370,8 @@ const SOC_DATA = {
       {"name": "TYPEC0 / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* USB2.0 PHY 配置 */\n&u2phy0 {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 配置\n * phy-supply 控制 VBUS 输出 5V\n * rockchip,sel-pipe-phystatus: 选择 GRF 控制 pipe phystatus\n * rockchip,dis-u2-susphy: 关闭 USB2 PHY 驱动动态 suspend 功能\n */\n&u2phy0_otg {\n\tstatus = \"okay\";\n\tphy-supply = <&vcc5v0_host>;\n\trockchip,sel-pipe-phystatus;\n\trockchip,dis-u2-susphy;\n};\n\n/* VBUS GPIO 配置 */\nvcc5v0_host: vcc5v0-host {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_host\";\n\tregulator-boot-on;\n\tregulator-always-on;\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_device>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_host_en>;\n};\n\n&pinctrl {\n\tusb {\n\t\tvcc5v0_host_en: vcc5v0-host-en {\n\t\t\trockchip,pins = <0 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};\n\n/* USBDP CombPHY 父节点配置（供电/不供电二选一，仅保留一种方案，删除另一段） */\n\n/* 方案1：实际硬件电路 CombPHY 采用供电设计，disable usbdp_phy 让其处于未初始化状态以达到最低功耗 */\n&usbdp_phy {\n\tstatus = \"disabled\";\n};\n\n/* 方案2：实际硬件电路 CombPHY 采用不供电设计，enable usbdp_phy 并 disable 相关子节点 */\n&usbdp_phy {\n\tstatus = \"okay\";\n\trockchip,usbdpphy-clamp;\n\tmaximum-speed = \"high-speed\";\n};\n\n/* USBDP CombPHY 子节点 disable */\n&usbdp_phy_dp {\n\tstatus = \"disabled\";\n};\n\n&usbdp_phy_u3 {\n\tstatus = \"disabled\";\n};\n\n/* disable DP 控制器 */\n&dp {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器节点\n * dr_mode=\"host\" 不配置 extcon，不支持软件切换 Device / Host mode\n * phys 只引用 usb 2.0 phy\n * maximum-speed 限制为 USB2.0 only\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usb_drd0_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n\tphys = <&u2phy0_otg>;\n\tphy-names = \"usb2-phy\";\n\tmaximum-speed = \"high-speed\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};"},
       {"name": "TYPEC0 / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&u2phy0 {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 配置\n * rockchip,sel-pipe-phystatus: 选择 GRF 控制 pipe phystatus\n * rockchip,dis-u2-susphy: 关闭 USB2 PHY 驱动动态 suspend 功能\n */\n&u2phy0_otg {\n\tstatus = \"okay\";\n\trockchip,sel-pipe-phystatus;\n\trockchip,dis-u2-susphy;\n};\n\n/* USBDP CombPHY 父节点配置（供电/不供电二选一，仅保留一种方案，删除另一段） */\n\n/* 方案1：实际硬件电路 CombPHY 采用供电设计，disable usbdp_phy 让其处于未初始化状态以达到最低功耗 */\n&usbdp_phy {\n\tstatus = \"disabled\";\n};\n\n/* 方案2：实际硬件电路 CombPHY 采用不供电设计，enable usbdp_phy 并 disable 相关子节点 */\n&usbdp_phy {\n\tstatus = \"okay\";\n\trockchip,usbdpphy-clamp;\n\tmaximum-speed = \"high-speed\";\n};\n\n/* USBDP CombPHY 子节点 disable */\n&usbdp_phy_dp {\n\tstatus = \"disabled\";\n};\n\n&usbdp_phy_u3 {\n\tstatus = \"disabled\";\n};\n\n/* disable DP 控制器 */\n&dp {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器节点\n * dr_mode = \"peripheral\" 通知 DWC3 驱动初始化为 Device only mode\n * phys 只引用 usb 2.0 phy\n * maximum-speed 限制为 USB2.0 only\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n */\n&usb_drd0_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n\tphys = <&u2phy0_otg>;\n\tphy-names = \"usb2-phy\";\n\tmaximum-speed = \"high-speed\";\n\tsnps,dis_u2_susphy_quirk;\n};"},
       {"name": "TYPEC0 / Micro-USB2.0", "node": "", "desc": "Micro-USB2.0", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&u2phy0 {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 配置\n * vbus-supply: 控制 VBUS 输出 5V 实现 VBUS 动态开关\n * rockchip,sel-pipe-phystatus: 选择 GRF 控制 pipe phystatus\n * rockchip,dis-u2-susphy: 关闭 USB2 PHY 驱动动态 suspend 功能\n */\n&u2phy0_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n\trockchip,sel-pipe-phystatus;\n\trockchip,dis-u2-susphy;\n};\n\n/* VBUS GPIO 配置 */\nvcc5v0_otg: vcc5v0-otg {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PD1 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_device>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};\n\n/* USBDP CombPHY 父节点配置（供电/不供电二选一，仅保留一种方案，删除另一段） */\n\n/* 方案1：实际硬件电路 CombPHY 采用供电设计，disable usbdp_phy 让其处于未初始化状态以达到最低功耗 */\n&usbdp_phy {\n\tstatus = \"disabled\";\n};\n\n/* 方案2：实际硬件电路 CombPHY 采用不供电设计，enable usbdp_phy 并 disable 相关子节点 */\n&usbdp_phy {\n\tstatus = \"okay\";\n\trockchip,usbdpphy-clamp;\n\tmaximum-speed = \"high-speed\";\n};\n\n/* USBDP CombPHY 子节点 disable */\n&usbdp_phy_dp {\n\tstatus = \"disabled\";\n};\n\n&usbdp_phy_u3 {\n\tstatus = \"disabled\";\n};\n\n/* disable DP 控制器 */\n&dp {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器节点\n * dr_mode=\"otg\" + extcon 才能支持软件切换 Device / Host mode\n * phys 只引用 usb 2.0 phy\n * maximum-speed = \"high-speed\" 通知 DWC3 驱动将 USB 限制为 USB2.0 only\n * snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n */\n&usb_drd0_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\textcon = <&u2phy0>;\n\tphys = <&u2phy0_otg>;\n\tphy-names = \"usb2-phy\";\n\tmaximum-speed = \"high-speed\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};"},
-      {"name": "TYPEC1 / Type-C USB3.0 HUSB311", "node": "", "desc": "Type-C USB3.0 HUSB311", "dts": "/* USB2.0 PHY1 注册 typec orientation switch，用于与 TCPM 子系统交互获取 USB 热拔插信息 */\n&u2phy1 {\n\tstatus = \"okay\";\n\torientation-switch;\n\n    port {\n        u2phy1_orientation_switch: endpoint {\n            remote-endpoint = <&usbc1_orien_sw>;\n        };\n    };\n};\n\n/* USB2.0 PHY1 OTG 配置\n * rockchip,typec-vbus-det: 支持 Type-C VBUS_DET 常拉高的硬件设计\n */\n&u2phy1_otg {\n\tstatus = \"okay\";\n\trockchip,typec-vbus-det;\n};\n\n/* Combo PHY1 节点配置 */\n&combphy1_psu {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器节点\n * dr_mode=\"otg\" 配合 usb-role-switch 实现角色切换\n */\n&usb_drd1_dwc3 {\n    status = \"okay\";\n    dr_mode = \"otg\";\n    usb-role-switch;\n    port {\n        dwc3_1_role_switch: endpoint@0 {\n            remote-endpoint = <&usbc1_role_sw>;\n        };\n    };\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311，需根据实际硬件设计配置 I2C/interrupts/vbus-supply/usb_con\n * usbc1_role_sw 的 remote-endpoint 需指向 <&dwc3_1_role_switch>\n */\n&i2c2 {\n\tpinctrl-0 = <&i2c2m0_xfer>;\n\tstatus = \"okay\";\n\tusbc1: husb311@4e {\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n        /* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_A5 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PA5 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&usbc1_int>;\n\n        orientation-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_HIGH>;\n\t\t/*\n\t\t * VBUS 配置\n\t\t * 若 VBUS 是通过 GPIO 或 PMIC 的 LDO 控制，则需要 vbus-supply = <&vbus5v0_typec> 配置；\n\t\t * 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vbus5v1_typec> 配置；\n\t\t */\n\t\tvbus-supply = <&vbus5v1_typec>;\n\t\tstatus = \"okay\";\n\n\t\tport {\n\t\t\tusbc1_role_sw: endpoint {\n\t\t\t\tremote-endpoint = <&dwc3_1_role_switch>;\n\t\t\t};\n\t\t};\n\n\t\tusb_con1: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n            /* \n             * TYPEC1 不支持双面，因此需要加一个 switch 芯片用于切换正反面，这里用一个 gpio 口控制 switch 芯片\n             * 驱动上需要添加对应的操作，添加该章节下面的补丁。\n             */\n            orientation-switch = <&gpio_sbu_mux>;\n            /* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n            /*\n             * sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n             * 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n             * 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n             * 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n             */\n            sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t * source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t *  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t */\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\tport {\n                usbc1_orien_sw: endpoint {\n                    remote-endpoint = <&u2phy1_orientation_switch>;\n                };\n            };\n\t\t};\n\t};\n};\n\n/* VBUS regulator 配置，使用 GPIO 控制 VBUS，GPIO 控制脚定义成 regulator 设备，请根据原理图设计进行相应修改 */\nvbus5v1_typec: vbus5v1-typec {\n    compatible = \"regulator-fixed\";\n    regulator-name = \"vbus5v1_typec\";\n    regulator-min-microvolt = <5000000>;\n    regulator-max-microvolt = <5000000>;\n    enable-active-low;\n    gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;\n    vin-supply = <&vcc5v0_device>;\n    pinctrl-names = \"default\";\n    pinctrl-0 = <&usb_otg1_pwren>;\n};\n\ngpio_sbu_mux: gpio-sbu-mux {\n    compatible = \"gpio-sbu-mux\";\n    pinctrl-names = \"default\";\n    pinctrl-0 = <&sbu_sel_pin>;\n    select-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;\n};\n\n/* 中断脚和 VBUS 控制脚的 pinctrl 配置，请根据原理图设计进行相应修改 */\n&pinctrl {\n\tusb {\n\t\tusb_otg1_pwren: usb-otg1-pwren {\n\t\t\trockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t\tusbc1_int: usbc1-int {\n\t\t\trockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n        sbu_sel_pin: sbu-sel-pin {\n\t\t\trockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};\n\n/* 以下补丁用于控制 switch 芯片，支持 USB3.0 正反插 */\ndiff --git a/arch/arm64/configs/rockchip_linux_defconfig b/arch/arm64/configs/rockchip_linux_defconfig\nindex c20580b6ee00..20322892ebb5 100644\n--- a/arch/arm64/configs/rockchip_linux_defconfig\n+++ b/arch/arm64/configs/rockchip_linux_defconfig\n@@ -498,6 +498,7 @@ CONFIG_TYPEC_TCPCI=y\n CONFIG_TYPEC_HUSB311=y\n CONFIG_TYPEC_FUSB302=y\n CONFIG_TYPEC_DP_ALTMODE=y\n+CONFIG_TYPEC_MUX_GPIO_SBU=y\n CONFIG_MMC=y\n CONFIG_MMC_BLOCK_MINORS=32\n CONFIG_MMC_TEST=y\ndiff --git a/drivers/usb/typec/mux/Kconfig b/drivers/usb/typec/mux/Kconfig\nindex 5eb2c17d72c1..def58f5b6cd0 100644\n--- a/drivers/usb/typec/mux/Kconfig\n+++ b/drivers/usb/typec/mux/Kconfig\n@@ -29,4 +29,13 @@ config TYPEC_MUX_INTEL_PMC\n \t  control the USB role switch and also the multiplexer/demultiplexer\n \t  switches used with USB Type-C Alternate Modes.\n \n+config TYPEC_MUX_GPIO_SBU\n+\ttristate \"GPIO based SBU mux driver\"\n+\tdepends on GPIOLIB\n+\thelp\n+\t  Driver for USB Type-C SBU (Sideband Use) muxes that are controlled\n+\t  via GPIOs. Provides support for muxing sideband signals on a common\n+\t  USB Type-C connector when no dedicated mux chip is available.\n+\t  If compiled as a module, the module will be named gpio_sbu_mux.\n+\n endmenu\ndiff --git a/drivers/usb/typec/mux/Makefile b/drivers/usb/typec/mux/Makefile\nindex e52a56c16bfb..7de4084ed1fd 100644\n--- a/drivers/usb/typec/mux/Makefile\n+++ b/drivers/usb/typec/mux/Makefile\n@@ -3,3 +3,4 @@\n obj-$(CONFIG_TYPEC_MUX_FSA4480)\t\t+= fsa4480.o\n obj-$(CONFIG_TYPEC_MUX_PI3USB30532)\t+= pi3usb30532.o\n obj-$(CONFIG_TYPEC_MUX_INTEL_PMC)\t+= intel_pmc_mux.o\n+obj-$(CONFIG_TYPEC_MUX_GPIO_SBU)\t\t+= gpio-sbu-mux.o\ndiff --git a/drivers/usb/typec/mux/gpio-sbu-mux.c b/drivers/usb/typec/mux/gpio-sbu-mux.c\nnew file mode 100644\nindex 000000000000..6d750a70dde9\n--- /dev/null\n+++ b/drivers/usb/typec/mux/gpio-sbu-mux.c\n@@ -0,0 +1,173 @@\n+// SPDX-License-Identifier: GPL-2.0\n+/*\n+ * Copyright (C) 2022 Linaro Ltd.\n+ */\n+\n+#include <linux/device.h>\n+#include <linux/module.h>\n+#include <linux/mutex.h>\n+#include <linux/gpio/consumer.h>\n+#include <linux/platform_device.h>\n+#include <linux/usb/typec_dp.h>\n+#include <linux/usb/typec_mux.h>\n+\n+struct gpio_sbu_mux {\n+\tstruct gpio_desc *enable_gpio;\n+\tstruct gpio_desc *select_gpio;\n+\n+\tstruct typec_switch_dev *sw;\n+\tstruct typec_mux_dev *mux;\n+\n+\tstruct mutex lock; /* protect enabled and swapped */\n+\tbool enabled;\n+\tbool swapped;\n+};\n+\n+static int gpio_sbu_switch_set(struct typec_switch_dev *sw,\n+\t\t\t       enum typec_orientation orientation)\n+{\n+\tstruct gpio_sbu_mux *sbu_mux = typec_switch_get_drvdata(sw);\n+\tbool enabled;\n+\tbool swapped;\n+\n+\tmutex_lock(&sbu_mux->lock);\n+\n+\tenabled = sbu_mux->enabled;\n+\tswapped = sbu_mux->swapped;\n+\n+\tswitch (orientation) {\n+\tcase TYPEC_ORIENTATION_NONE:\n+\t\tenabled = false;\n+\t\tbreak;\n+\tcase TYPEC_ORIENTATION_NORMAL:\n+\t\tswapped = false;\n+\t\tbreak;\n+\tcase TYPEC_ORIENTATION_REVERSE:\n+\t\tswapped = true;\n+\t\tbreak;\n+\t}\n+\n+\tif (enabled != sbu_mux->enabled)\n+\t\tgpiod_set_value_cansleep(sbu_mux->enable_gpio, enabled);\n+\n+\tif (swapped != sbu_mux->swapped)\n+\t\tgpiod_set_value_cansleep(sbu_mux->select_gpio, swapped);\n+\n+\tsbu_mux->enabled = enabled;\n+\tsbu_mux->swapped = swapped;\n+\n+\tmutex_unlock(&sbu_mux->lock);\n+\n+\treturn 0;\n+}\n+\n+static int gpio_sbu_mux_set(struct typec_mux_dev *mux,\n+\t\t\t    struct typec_mux_state *state)\n+{\n+\tstruct gpio_sbu_mux *sbu_mux = typec_mux_get_drvdata(mux);\n+\n+\tif (!sbu_mux->enable_gpio)\n+\t\treturn -EOPNOTSUPP;\n+\n+\tmutex_lock(&sbu_mux->lock);\n+\n+\tswitch (state->mode) {\n+\tcase TYPEC_STATE_SAFE:\n+\tcase TYPEC_STATE_USB:\n+\t\tsbu_mux->enabled = false;\n+\t\tbreak;\n+\tcase TYPEC_DP_STATE_C:\n+\tcase TYPEC_DP_STATE_D:\n+\tcase TYPEC_DP_STATE_E:\n+\t\tsbu_mux->enabled = true;\n+\t\tbreak;\n+\tdefault:\n+\t\tbreak;\n+\t}\n+\n+\tgpiod_set_value_cansleep(sbu_mux->enable_gpio, sbu_mux->enabled);\n+\n+\tmutex_unlock(&sbu_mux->lock);\n+\n+\treturn 0;\n+}\n+\n+static int gpio_sbu_mux_probe(struct platform_device *pdev)\n+{\n+\tstruct typec_switch_desc sw_desc = { };\n+\tstruct typec_mux_desc mux_desc = { };\n+\tstruct device *dev = &pdev->dev;\n+\tstruct gpio_sbu_mux *sbu_mux;\n+\tint ret = 0;\n+\n+\tsbu_mux = devm_kzalloc(dev, sizeof(*sbu_mux), GFP_KERNEL);\n+\tif (!sbu_mux)\n+\t\treturn -ENOMEM;\n+\n+\tmutex_init(&sbu_mux->lock);\n+\n+\tsbu_mux->enable_gpio = devm_gpiod_get_optional(dev, \"enable\",\n+\t\t\t\t\t\t       GPIOD_OUT_LOW);\n+\tif (IS_ERR(sbu_mux->enable_gpio))\n+\t\treturn dev_err_probe(dev, PTR_ERR(sbu_mux->enable_gpio),\n+\t\t\t\t     \"unable to acquire enable gpio\\n\");\n+\n+\tsbu_mux->select_gpio = devm_gpiod_get(dev, \"select\", GPIOD_OUT_LOW);\n+\tif (IS_ERR(sbu_mux->select_gpio))\n+\t\treturn dev_err_probe(dev, PTR_ERR(sbu_mux->select_gpio),\n+\t\t\t\t     \"unable to acquire select gpio\\n\");\n+\n+\tsw_desc.drvdata = sbu_mux;\n+\tsw_desc.fwnode = dev_fwnode(dev);\n+\tsw_desc.set = gpio_sbu_switch_set;\n+\n+\tsbu_mux->sw = typec_switch_register(dev, &sw_desc);\n+\tif (IS_ERR(sbu_mux->sw))\n+\t\treturn dev_err_probe(dev, PTR_ERR(sbu_mux->sw),\n+\t\t\t\t     \"failed to register typec switch\\n\");\n+\n+\tmux_desc.drvdata = sbu_mux;\n+\tmux_desc.fwnode = dev_fwnode(dev);\n+\tmux_desc.set = gpio_sbu_mux_set;\n+\n+\tsbu_mux->mux = typec_mux_register(dev, &mux_desc);\n+\tif (IS_ERR(sbu_mux->mux)) {\n+\t\tret = PTR_ERR(sbu_mux->mux);\n+\t\ttypec_switch_unregister(sbu_mux->sw);\n+\t\treturn dev_err_probe(dev, ret,\n+\t\t\t\t     \"failed to register typec mux\\n\");\n+\t}\n+\n+\tplatform_set_drvdata(pdev, sbu_mux);\n+\n+\treturn 0;\n+}\n+\n+static void gpio_sbu_mux_remove(struct platform_device *pdev)\n+{\n+\tstruct gpio_sbu_mux *sbu_mux = platform_get_drvdata(pdev);\n+\n+\tgpiod_set_value_cansleep(sbu_mux->enable_gpio, 0);\n+\n+\ttypec_mux_unregister(sbu_mux->mux);\n+\ttypec_switch_unregister(sbu_mux->sw);\n+}\n+\n+static const struct of_device_id gpio_sbu_mux_match[] = {\n+\t{ .compatible = \"gpio-sbu-mux\", },\n+\t{}\n+};\n+MODULE_DEVICE_TABLE(of, gpio_sbu_mux_match);\n+\n+static struct platform_driver gpio_sbu_mux_driver = {\n+\t.probe = gpio_sbu_mux_probe,\n+\t.remove_new = gpio_sbu_mux_remove,\n+\t.driver = {\n+\t\t.name = \"gpio_sbu_mux\",\n+\t\t.of_match_table = gpio_sbu_mux_match,\n+\t},\n+};\n+module_platform_driver(gpio_sbu_mux_driver);\n+\n+MODULE_DESCRIPTION(\"GPIO based SBU mux driver\");\n+MODULE_LICENSE(\"GPL\");\n\\ No newline at end of file"},
-      {"name": "TYPEC1 / Type-C USB2.0 HUSB311", "node": "", "desc": "Type-C USB2.0 HUSB311", "dts": "/* USB2.0 PHY1 注册 typec orientation switch，用于与 TCPM 子系统交互获取 USB 热拔插信息 */\n&u2phy1 {\n\tstatus = \"okay\";\n\torientation-switch;\n\n    port {\n        u2phy1_orientation_switch: endpoint {\n            remote-endpoint = <&usbc1_orien_sw>;\n        };\n    };\n};\n\n/* USB2.0 PHY1 OTG 配置\n * rockchip,sel-pipe-phystatus: 选择 GRF 控制 pipe phystatus，替代 USBDP PHY 控制\n * rockchip,typec-vbus-det: 支持 Type-C VBUS_DET 常拉高的硬件设计\n * rockchip,dis-u2-susphy: 关闭 USB2 PHY 驱动动态进入 suspend mode 的功能\n */\n&u2phy1_otg {\n\tstatus = \"okay\";\n    rockchip,sel-pipe-phystatus;\n    rockchip,typec-vbus-det;\n    rockchip,dis-u2-susphy;\n};\n\n/* Combo PHY1 节点配置 */\n&combphy1_psu {\n\tstatus = \"okay\";\n\trockchip,dis-u3otg1-port;\n};\n\n/* USB 控制器节点\n * dr_mode=\"otg\" 配合 usb-role-switch 实现角色切换\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * snps,dis_u2_susphy_quirk 关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable 关闭控制器 Host mode 的 LPM 功能\n */\n&usb_drd1_dwc3 {\n    status = \"okay\";\n    dr_mode = \"otg\";\n\tphys = <&u2phy1_otg>, <&combphy1_psu PHY_TYPE_USB3>;  /* 这里必须要引用 combphy1_psu */\n\tphy-names = \"usb2-phy\", \"usb3-phy\";\n    maximum-speed = \"high-speed\";\n    snps,dis_u2_susphy_quirk;\n    snps,usb2-lpm-disable;\n    usb-role-switch;\n    port {\n        dwc3_1_role_switch: endpoint@0 {\n            remote-endpoint = <&usbc1_role_sw>;\n        };\n    };\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311，需根据实际硬件设计配置 I2C/interrupts/vbus-supply/usb_con\n * usbc1_role_sw 的 remote-endpoint 需指向 <&dwc3_1_role_switch>\n */\n&i2c2 {\n\tpinctrl-0 = <&i2c2m0_xfer>;\n\tstatus = \"okay\";\n\tusbc1: husb311@4e {\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n        /* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_A5 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PA5 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&usbc1_int>;\n\t\t/*\n\t\t * VBUS 配置\n\t\t * 若 VBUS 是通过 GPIO 或 PMIC 的 LDO 控制，则需要 vbus-supply = <&vbus5v0_typec> 配置；\n\t\t * 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vbus5v1_typec> 配置；\n\t\t */\n\t\tvbus-supply = <&vbus5v1_typec>;\n\t\tstatus = \"okay\";\n\n\t\tport {\n\t\t\tusbc1_role_sw: endpoint {\n\t\t\t\tremote-endpoint = <&dwc3_1_role_switch>;\n\t\t\t};\n\t\t};\n\n\t\tusb_con1: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n            /* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n            /*\n             * sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n             * 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n             * 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n             * 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n             */\n            sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t * source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t *  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t */\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\tport {\n                usbc1_orien_sw: endpoint {\n                    remote-endpoint = <&u2phy1_orientation_switch>;\n                };\n            };\n\t\t};\n\t};\n};\n\n/* VBUS regulator 配置，使用 GPIO 控制 VBUS，GPIO 控制脚定义成 regulator 设备，请根据原理图设计进行相应修改 */\nvbus5v1_typec: vbus5v1-typec {\n    compatible = \"regulator-fixed\";\n    regulator-name = \"vbus5v1_typec\";\n    regulator-min-microvolt = <5000000>;\n    regulator-max-microvolt = <5000000>;\n    enable-active-low;\n    gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;\n    vin-supply = <&vcc5v0_device>;\n    pinctrl-names = \"default\";\n    pinctrl-0 = <&usb_otg1_pwren>;\n};\n\n/* 中断脚和 VBUS 控制脚的 pinctrl 配置，请根据原理图设计进行相应修改 */\n&pinctrl {\n\tusb {\n\t\tusb_otg1_pwren: usb-otg1-pwren {\n\t\t\trockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t\tusbc1_int: usbc1-int {\n\t\t\trockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
+      {"name": "TYPEC1 / Type-C USB3.0 HUSB311", "node": "", "desc": "Type-C USB3.0 HUSB311", "dts": "/* USB2.0 PHY1 注册 typec orientation switch，用于与 TCPM 子系统交互获取 USB 热拔插信息 */\n&u2phy1 {\n\tstatus = \"okay\";\n\torientation-switch;\n\n    port {\n        u2phy1_orientation_switch: endpoint {\n            remote-endpoint = <&usbc1_orien_sw>;\n        };\n    };\n};\n\n/* USB2.0 PHY1 OTG 配置\n * rockchip,typec-vbus-det: 支持 Type-C VBUS_DET 常拉高的硬件设计\n */\n&u2phy1_otg {\n\tstatus = \"okay\";\n\trockchip,typec-vbus-det;\n};\n\n/* Combo PHY1 节点配置 */\n&combphy1_psu {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器节点\n * dr_mode=\"otg\" 配合 usb-role-switch 实现角色切换\n */\n&usb_drd1_dwc3 {\n    status = \"okay\";\n    dr_mode = \"otg\";\n    usb-role-switch;\n    port {\n        dwc3_1_role_switch: endpoint@0 {\n            remote-endpoint = <&usbc1_role_sw>;\n        };\n    };\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311，需根据实际硬件设计配置 I2C/interrupts/vbus-supply/usb_con\n * usbc1_role_sw 的 remote-endpoint 需指向 <&dwc3_1_role_switch>\n */\n&i2c2 {\n\tstatus = \"okay\";\n\tpinctrl-0 = <&i2c2m0_xfer>;\n\tusbc1: husb311@4e {\n\t\tstatus = \"okay\";\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n        /* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_A5 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PA5 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&usbc1_int>;\n\n        orientation-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_HIGH>;\n\t\t/*\n\t\t * VBUS 配置\n\t\t * 若 VBUS 是通过 GPIO 或 PMIC 的 LDO 控制，则需要 vbus-supply = <&vbus5v0_typec> 配置；\n\t\t * 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vbus5v1_typec> 配置；\n\t\t */\n\t\tvbus-supply = <&vbus5v1_typec>;\n\n\t\tport {\n\t\t\tusbc1_role_sw: endpoint {\n\t\t\t\tremote-endpoint = <&dwc3_1_role_switch>;\n\t\t\t};\n\t\t};\n\n\t\tusb_con1: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n            /* \n             * TYPEC1 不支持双面，因此需要加一个 switch 芯片用于切换正反面，这里用一个 gpio 口控制 switch 芯片\n             * 驱动上需要添加对应的操作，添加该章节下面的补丁。\n             */\n            orientation-switch = <&gpio_sbu_mux>;\n            /* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n            /*\n             * sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n             * 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n             * 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n             * 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n             */\n            sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t * source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t *  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t */\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\tport {\n                usbc1_orien_sw: endpoint {\n                    remote-endpoint = <&u2phy1_orientation_switch>;\n                };\n            };\n\t\t};\n\t};\n};\n\n/* VBUS regulator 配置，使用 GPIO 控制 VBUS，GPIO 控制脚定义成 regulator 设备，请根据原理图设计进行相应修改 */\nvbus5v1_typec: vbus5v1-typec {\n    compatible = \"regulator-fixed\";\n    regulator-name = \"vbus5v1_typec\";\n    regulator-min-microvolt = <5000000>;\n    regulator-max-microvolt = <5000000>;\n    enable-active-low;\n    gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;\n    vin-supply = <&vcc5v0_device>;\n    pinctrl-names = \"default\";\n    pinctrl-0 = <&usb_otg1_pwren>;\n};\n\ngpio_sbu_mux: gpio-sbu-mux {\n    compatible = \"gpio-sbu-mux\";\n    pinctrl-names = \"default\";\n    pinctrl-0 = <&sbu_sel_pin>;\n    select-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;\n};\n\n/* 中断脚和 VBUS 控制脚的 pinctrl 配置，请根据原理图设计进行相应修改 */\n&pinctrl {\n\tusb {\n\t\tusb_otg1_pwren: usb-otg1-pwren {\n\t\t\trockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t\tusbc1_int: usbc1-int {\n\t\t\trockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n        sbu_sel_pin: sbu-sel-pin {\n\t\t\trockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};\n\n/* 以下补丁用于控制 switch 芯片，支持 USB3.0 正反插 */\ndiff --git a/arch/arm64/configs/rockchip_linux_defconfig b/arch/arm64/configs/rockchip_linux_defconfig\nindex c20580b6ee00..20322892ebb5 100644\n--- a/arch/arm64/configs/rockchip_linux_defconfig\n+++ b/arch/arm64/configs/rockchip_linux_defconfig\n@@ -498,6 +498,7 @@ CONFIG_TYPEC_TCPCI=y\n CONFIG_TYPEC_HUSB311=y\n CONFIG_TYPEC_FUSB302=y\n CONFIG_TYPEC_DP_ALTMODE=y\n+CONFIG_TYPEC_MUX_GPIO_SBU=y\n CONFIG_MMC=y\n CONFIG_MMC_BLOCK_MINORS=32\n CONFIG_MMC_TEST=y\ndiff --git a/drivers/usb/typec/mux/Kconfig b/drivers/usb/typec/mux/Kconfig\nindex 5eb2c17d72c1..def58f5b6cd0 100644\n--- a/drivers/usb/typec/mux/Kconfig\n+++ b/drivers/usb/typec/mux/Kconfig\n@@ -29,4 +29,13 @@ config TYPEC_MUX_INTEL_PMC\n \t  control the USB role switch and also the multiplexer/demultiplexer\n \t  switches used with USB Type-C Alternate Modes.\n \n+config TYPEC_MUX_GPIO_SBU\n+\ttristate \"GPIO based SBU mux driver\"\n+\tdepends on GPIOLIB\n+\thelp\n+\t  Driver for USB Type-C SBU (Sideband Use) muxes that are controlled\n+\t  via GPIOs. Provides support for muxing sideband signals on a common\n+\t  USB Type-C connector when no dedicated mux chip is available.\n+\t  If compiled as a module, the module will be named gpio_sbu_mux.\n+\n endmenu\ndiff --git a/drivers/usb/typec/mux/Makefile b/drivers/usb/typec/mux/Makefile\nindex e52a56c16bfb..7de4084ed1fd 100644\n--- a/drivers/usb/typec/mux/Makefile\n+++ b/drivers/usb/typec/mux/Makefile\n@@ -3,3 +3,4 @@\n obj-$(CONFIG_TYPEC_MUX_FSA4480)\t\t+= fsa4480.o\n obj-$(CONFIG_TYPEC_MUX_PI3USB30532)\t+= pi3usb30532.o\n obj-$(CONFIG_TYPEC_MUX_INTEL_PMC)\t+= intel_pmc_mux.o\n+obj-$(CONFIG_TYPEC_MUX_GPIO_SBU)\t\t+= gpio-sbu-mux.o\ndiff --git a/drivers/usb/typec/mux/gpio-sbu-mux.c b/drivers/usb/typec/mux/gpio-sbu-mux.c\nnew file mode 100644\nindex 000000000000..6d750a70dde9\n--- /dev/null\n+++ b/drivers/usb/typec/mux/gpio-sbu-mux.c\n@@ -0,0 +1,173 @@\n+// SPDX-License-Identifier: GPL-2.0\n+/*\n+ * Copyright (C) 2022 Linaro Ltd.\n+ */\n+\n+#include <linux/device.h>\n+#include <linux/module.h>\n+#include <linux/mutex.h>\n+#include <linux/gpio/consumer.h>\n+#include <linux/platform_device.h>\n+#include <linux/usb/typec_dp.h>\n+#include <linux/usb/typec_mux.h>\n+\n+struct gpio_sbu_mux {\n+\tstruct gpio_desc *enable_gpio;\n+\tstruct gpio_desc *select_gpio;\n+\n+\tstruct typec_switch_dev *sw;\n+\tstruct typec_mux_dev *mux;\n+\n+\tstruct mutex lock; /* protect enabled and swapped */\n+\tbool enabled;\n+\tbool swapped;\n+};\n+\n+static int gpio_sbu_switch_set(struct typec_switch_dev *sw,\n+\t\t\t       enum typec_orientation orientation)\n+{\n+\tstruct gpio_sbu_mux *sbu_mux = typec_switch_get_drvdata(sw);\n+\tbool enabled;\n+\tbool swapped;\n+\n+\tmutex_lock(&sbu_mux->lock);\n+\n+\tenabled = sbu_mux->enabled;\n+\tswapped = sbu_mux->swapped;\n+\n+\tswitch (orientation) {\n+\tcase TYPEC_ORIENTATION_NONE:\n+\t\tenabled = false;\n+\t\tbreak;\n+\tcase TYPEC_ORIENTATION_NORMAL:\n+\t\tswapped = false;\n+\t\tbreak;\n+\tcase TYPEC_ORIENTATION_REVERSE:\n+\t\tswapped = true;\n+\t\tbreak;\n+\t}\n+\n+\tif (enabled != sbu_mux->enabled)\n+\t\tgpiod_set_value_cansleep(sbu_mux->enable_gpio, enabled);\n+\n+\tif (swapped != sbu_mux->swapped)\n+\t\tgpiod_set_value_cansleep(sbu_mux->select_gpio, swapped);\n+\n+\tsbu_mux->enabled = enabled;\n+\tsbu_mux->swapped = swapped;\n+\n+\tmutex_unlock(&sbu_mux->lock);\n+\n+\treturn 0;\n+}\n+\n+static int gpio_sbu_mux_set(struct typec_mux_dev *mux,\n+\t\t\t    struct typec_mux_state *state)\n+{\n+\tstruct gpio_sbu_mux *sbu_mux = typec_mux_get_drvdata(mux);\n+\n+\tif (!sbu_mux->enable_gpio)\n+\t\treturn -EOPNOTSUPP;\n+\n+\tmutex_lock(&sbu_mux->lock);\n+\n+\tswitch (state->mode) {\n+\tcase TYPEC_STATE_SAFE:\n+\tcase TYPEC_STATE_USB:\n+\t\tsbu_mux->enabled = false;\n+\t\tbreak;\n+\tcase TYPEC_DP_STATE_C:\n+\tcase TYPEC_DP_STATE_D:\n+\tcase TYPEC_DP_STATE_E:\n+\t\tsbu_mux->enabled = true;\n+\t\tbreak;\n+\tdefault:\n+\t\tbreak;\n+\t}\n+\n+\tgpiod_set_value_cansleep(sbu_mux->enable_gpio, sbu_mux->enabled);\n+\n+\tmutex_unlock(&sbu_mux->lock);\n+\n+\treturn 0;\n+}\n+\n+static int gpio_sbu_mux_probe(struct platform_device *pdev)\n+{\n+\tstruct typec_switch_desc sw_desc = { };\n+\tstruct typec_mux_desc mux_desc = { };\n+\tstruct device *dev = &pdev->dev;\n+\tstruct gpio_sbu_mux *sbu_mux;\n+\tint ret = 0;\n+\n+\tsbu_mux = devm_kzalloc(dev, sizeof(*sbu_mux), GFP_KERNEL);\n+\tif (!sbu_mux)\n+\t\treturn -ENOMEM;\n+\n+\tmutex_init(&sbu_mux->lock);\n+\n+\tsbu_mux->enable_gpio = devm_gpiod_get_optional(dev, \"enable\",\n+\t\t\t\t\t\t       GPIOD_OUT_LOW);\n+\tif (IS_ERR(sbu_mux->enable_gpio))\n+\t\treturn dev_err_probe(dev, PTR_ERR(sbu_mux->enable_gpio),\n+\t\t\t\t     \"unable to acquire enable gpio\\n\");\n+\n+\tsbu_mux->select_gpio = devm_gpiod_get(dev, \"select\", GPIOD_OUT_LOW);\n+\tif (IS_ERR(sbu_mux->select_gpio))\n+\t\treturn dev_err_probe(dev, PTR_ERR(sbu_mux->select_gpio),\n+\t\t\t\t     \"unable to acquire select gpio\\n\");\n+\n+\tsw_desc.drvdata = sbu_mux;\n+\tsw_desc.fwnode = dev_fwnode(dev);\n+\tsw_desc.set = gpio_sbu_switch_set;\n+\n+\tsbu_mux->sw = typec_switch_register(dev, &sw_desc);\n+\tif (IS_ERR(sbu_mux->sw))\n+\t\treturn dev_err_probe(dev, PTR_ERR(sbu_mux->sw),\n+\t\t\t\t     \"failed to register typec switch\\n\");\n+\n+\tmux_desc.drvdata = sbu_mux;\n+\tmux_desc.fwnode = dev_fwnode(dev);\n+\tmux_desc.set = gpio_sbu_mux_set;\n+\n+\tsbu_mux->mux = typec_mux_register(dev, &mux_desc);\n+\tif (IS_ERR(sbu_mux->mux)) {\n+\t\tret = PTR_ERR(sbu_mux->mux);\n+\t\ttypec_switch_unregister(sbu_mux->sw);\n+\t\treturn dev_err_probe(dev, ret,\n+\t\t\t\t     \"failed to register typec mux\\n\");\n+\t}\n+\n+\tplatform_set_drvdata(pdev, sbu_mux);\n+\n+\treturn 0;\n+}\n+\n+static void gpio_sbu_mux_remove(struct platform_device *pdev)\n+{\n+\tstruct gpio_sbu_mux *sbu_mux = platform_get_drvdata(pdev);\n+\n+\tgpiod_set_value_cansleep(sbu_mux->enable_gpio, 0);\n+\n+\ttypec_mux_unregister(sbu_mux->mux);\n+\ttypec_switch_unregister(sbu_mux->sw);\n+}\n+\n+static const struct of_device_id gpio_sbu_mux_match[] = {\n+\t{ .compatible = \"gpio-sbu-mux\", },\n+\t{}\n+};\n+MODULE_DEVICE_TABLE(of, gpio_sbu_mux_match);\n+\n+static struct platform_driver gpio_sbu_mux_driver = {\n+\t.probe = gpio_sbu_mux_probe,\n+\t.remove_new = gpio_sbu_mux_remove,\n+\t.driver = {\n+\t\t.name = \"gpio_sbu_mux\",\n+\t\t.of_match_table = gpio_sbu_mux_match,\n+\t},\n+};\n+module_platform_driver(gpio_sbu_mux_driver);\n+\n+MODULE_DESCRIPTION(\"GPIO based SBU mux driver\");\n+MODULE_LICENSE(\"GPL\");\n\\ No newline at end of file"},
+      {"name": "TYPEC1 / Type-C USB2.0 HUSB311", "node": "", "desc": "Type-C USB2.0 HUSB311", "dts": "/* USB2.0 PHY1 注册 typec orientation switch，用于与 TCPM 子系统交互获取 USB 热拔插信息 */\n&u2phy1 {\n\tstatus = \"okay\";\n\torientation-switch;\n\n    port {\n        u2phy1_orientation_switch: endpoint {\n            remote-endpoint = <&usbc1_orien_sw>;\n        };\n    };\n};\n\n/* USB2.0 PHY1 OTG 配置\n * rockchip,sel-pipe-phystatus: 选择 GRF 控制 pipe phystatus，替代 USBDP PHY 控制\n * rockchip,typec-vbus-det: 支持 Type-C VBUS_DET 常拉高的硬件设计\n * rockchip,dis-u2-susphy: 关闭 USB2 PHY 驱动动态进入 suspend mode 的功能\n */\n&u2phy1_otg {\n\tstatus = \"okay\";\n    rockchip,sel-pipe-phystatus;\n    rockchip,typec-vbus-det;\n    rockchip,dis-u2-susphy;\n};\n\n/* Combo PHY1 节点配置 */\n&combphy1_psu {\n\tstatus = \"okay\";\n\trockchip,dis-u3otg1-port;\n};\n\n/* USB 控制器节点\n * dr_mode=\"otg\" 配合 usb-role-switch 实现角色切换\n * maximum-speed = \"high-speed\" 限制为 USB2.0 only\n * snps,dis_u2_susphy_quirk 关闭控制器硬件 suspend usb2 phy 功能\n * snps,usb2-lpm-disable 关闭控制器 Host mode 的 LPM 功能\n */\n&usb_drd1_dwc3 {\n    status = \"okay\";\n    dr_mode = \"otg\";\n\tphys = <&u2phy1_otg>, <&combphy1_psu PHY_TYPE_USB3>;  /* 这里必须要引用 combphy1_psu */\n\tphy-names = \"usb2-phy\", \"usb3-phy\";\n    maximum-speed = \"high-speed\";\n    snps,dis_u2_susphy_quirk;\n    snps,usb2-lpm-disable;\n    usb-role-switch;\n    port {\n        dwc3_1_role_switch: endpoint@0 {\n            remote-endpoint = <&usbc1_role_sw>;\n        };\n    };\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311，需根据实际硬件设计配置 I2C/interrupts/vbus-supply/usb_con\n * usbc1_role_sw 的 remote-endpoint 需指向 <&dwc3_1_role_switch>\n */\n&i2c2 {\n\tstatus = \"okay\";\n\tpinctrl-0 = <&i2c2m0_xfer>;\n\tusbc1: husb311@4e {\n\t\tstatus = \"okay\";\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n        /* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_A5 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PA5 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&usbc1_int>;\n\t\t/*\n\t\t * VBUS 配置\n\t\t * 若 VBUS 是通过 GPIO 或 PMIC 的 LDO 控制，则需要 vbus-supply = <&vbus5v0_typec> 配置；\n\t\t * 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vbus5v1_typec> 配置；\n\t\t */\n\t\tvbus-supply = <&vbus5v1_typec>;\n\n\t\tport {\n\t\t\tusbc1_role_sw: endpoint {\n\t\t\t\tremote-endpoint = <&dwc3_1_role_switch>;\n\t\t\t};\n\t\t};\n\n\t\tusb_con1: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n            /* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n            /*\n             * sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n             * 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n             * 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n             * 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n             */\n            sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t * source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t *  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t */\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\tport {\n                usbc1_orien_sw: endpoint {\n                    remote-endpoint = <&u2phy1_orientation_switch>;\n                };\n            };\n\t\t};\n\t};\n};\n\n/* VBUS regulator 配置，使用 GPIO 控制 VBUS，GPIO 控制脚定义成 regulator 设备，请根据原理图设计进行相应修改 */\nvbus5v1_typec: vbus5v1-typec {\n    compatible = \"regulator-fixed\";\n    regulator-name = \"vbus5v1_typec\";\n    regulator-min-microvolt = <5000000>;\n    regulator-max-microvolt = <5000000>;\n    enable-active-low;\n    gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_LOW>;\n    vin-supply = <&vcc5v0_device>;\n    pinctrl-names = \"default\";\n    pinctrl-0 = <&usb_otg1_pwren>;\n};\n\n/* 中断脚和 VBUS 控制脚的 pinctrl 配置，请根据原理图设计进行相应修改 */\n&pinctrl {\n\tusb {\n\t\tusb_otg1_pwren: usb-otg1-pwren {\n\t\t\trockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t\tusbc1_int: usbc1-int {\n\t\t\trockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
       {"name": "TYPEC1 / Type-A USB3.1 OTG", "node": "", "desc": "Type-A USB3.1 OTG", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&u2phy1 {\n\tstatus = \"okay\";\n};\n\n/* vbus-supply 控制 VBUS 输出 5V，实现 VBUS 动态开关 */\n&u2phy1_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vcc5v0_otg>;\n};\n\n/* VBUS GPIO 配置 */\nvcc5v0_otg: vcc5v0-otg {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_device>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};\n\n/* USB3.1/SATA/PCIe Combo PHY */\n&combphy1_psu {\n\tstatus = \"okay\";\n};\n\n/* USB3.1 OTG1 Controller\n * dr_mode=\"otg\" + extcon 才能支持软件切换 Device / Host mode\n */\n&usb_drd1_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\textcon = <&u2phy1>;\n};"},
       {"name": "TYPEC1 / Type-A USB3.1 HOST", "node": "", "desc": "Type-A USB3.1 HOST", "dts": "/* USB2.0 PHY 配置 */\n&u2phy1 {\n\tstatus = \"okay\";\n};\n\n/* phy-supply 控制 VBUS 输出 5V */\n&u2phy1_otg {\n\tstatus = \"okay\";\n\tphy-supply = <&vcc5v0_host>;\n};\n\n/* VBUS GPIO 配置 */\nvcc5v0_host: vcc5v0-host {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_host\";\n\tregulator-boot-on;\n\tregulator-always-on;\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_device>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_host_en>;\n};\n\n&pinctrl {\n\tusb {\n\t\tvcc5v0_host_en: vcc5v0-host-en {\n\t\t\trockchip,pins = <0 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};\n\n/* USB3.1/SATA/PCIe Combo PHY */\n&combphy1_psu {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器节点\n * dr_mode=\"host\" 不用配置 extcon，不支持软件切换 Device / Host mode\n */\n&usb_drd1_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n};"},
       {"name": "TYPEC1 / Type-A USB3.1 DEVICE", "node": "", "desc": "Type-A USB3.1 DEVICE", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&u2phy1 {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 配置 */\n&u2phy1_otg {\n\tstatus = \"okay\";\n};\n\n/* USB3.1/SATA/PCIe Combo PHY */\n&combphy1_psu {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器节点\n * dr_mode=\"peripheral\" 不用配置 extcon，不支持软件切换 Device / Host mode\n */\n&usb_drd1_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n};"},
@@ -407,11 +442,11 @@ const SOC_DATA = {
       {"name": "USBDRD / Type-A USB2.0 OTG", "node": "", "desc": "Type-A USB2.0 OTG", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n* vbus-supply: 控制 VBUS 输出 5V 实现 VBUS 动态开关\n*/\n&usb2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vbus5v0_typec>;\n};\n\n/* USB3.0 PHY 禁用（仅使用 USB2.0） */\n&usb3phy {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器配置\n* dr_mode=\"otg\" + extcon 才能支持软件切换 Device / Host mode\n* maximum-speed = \"high-speed\" 限制为 USB2.0 only\n* phys 只引用 usb 2.0 phy\n* snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n* snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n*/\n&usb_drd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\textcon = <&usb2phy>;\n\tmaximum-speed = \"high-speed\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* VBUS regulator 配置，USB2.0 PHY 驱动通过 GPIO 控制 VBUS 输出 */\nvbus5v0_typec: vbus5v0-typec {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vbus5v0_typec\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio5 RK_PD6 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&typec5v_pwren>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\ttypec5v_pwren: typec5v-pwren {\n\t\t\trockchip,pins = <5 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBDRD / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n\t/* phy-supply 属性为可选配置，VBUS 常供电方案不用配置 */\n\tphy-supply = <&vbus5v0_typec>;\n};\n\n/* USB3.0 PHY 禁用（仅使用 USB2.0） */\n&usb3phy {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器配置\n* dr_mode = \"host\" 固定为 Host only\n* maximum-speed = \"high-speed\" 限制为 USB2.0 only\n* phys 只引用 usb 2.0 phy\n* snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n* snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n*/\n&usb_drd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"host\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* VBUS regulator 配置，USB2.0 PHY 驱动通过 GPIO 控制 VBUS 输出 */\nvbus5v0_typec: vbus5v0-typec {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vbus5v0_typec\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio5 RK_PD6 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&typec5v_pwren>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\ttypec5v_pwren: typec5v-pwren {\n\t\t\trockchip,pins = <5 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBDRD / Type-A USB2.0 DEVICE", "node": "", "desc": "Type-A USB2.0 DEVICE", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB3.0 PHY 禁用（仅使用 USB2.0） */\n&usb3phy {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器配置\n* dr_mode = \"peripheral\" 固定为 Device only\n* maximum-speed = \"high-speed\" 限制为 USB2.0 only\n* phys 只引用 usb 2.0 phy\n* snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n*/\n&usb_drd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n};"},
-      {"name": "USBDRD / Type-C USB2.0 HUSB311", "node": "", "desc": "Type-C USB2.0 HUSB311", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tmaximum-speed = \"high-speed\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: husb311@4e {\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&husb311_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\t\tstatus = \"okay\";\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n\tstatus = \"okay\";\n};\n\n/* VBUS 控制脚和 HUSB311 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\thusb311 {\n\t\thusb311_int: husb311-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
-      {"name": "USBDRD / Type-C USB2.0 FUSB302", "node": "", "desc": "Type-C USB2.0 FUSB302", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tmaximum-speed = \"high-speed\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 FUSB302\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: fusb302@22 {\n\t\tcompatible = \"fcs,fusb302\";\n\t\treg = <0x22>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&fusb302_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\t\tstatus = \"okay\";\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n\tstatus = \"okay\";\n};\n\n/* VBUS 控制脚和 FUSB302 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\tfusb302 {\n\t\tfusb302_int: fusb302-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
+      {"name": "USBDRD / Type-C USB2.0 HUSB311", "node": "", "desc": "Type-C USB2.0 HUSB311", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tmaximum-speed = \"high-speed\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: husb311@4e {\n\t\tstatus = \"okay\";\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&husb311_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tstatus = \"okay\";\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* VBUS 控制脚和 HUSB311 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\thusb311 {\n\t\thusb311_int: husb311-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
+      {"name": "USBDRD / Type-C USB2.0 FUSB302", "node": "", "desc": "Type-C USB2.0 FUSB302", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tmaximum-speed = \"high-speed\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 FUSB302\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: fusb302@22 {\n\t\tstatus = \"okay\";\n\t\tcompatible = \"fcs,fusb302\";\n\t\treg = <0x22>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&fusb302_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tstatus = \"okay\";\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* VBUS 控制脚和 FUSB302 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\tfusb302 {\n\t\tfusb302_int: fusb302-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n};"},
       {"name": "USBDRD / TYPE-C USB2.0 无 CC 芯片 DEVICE", "node": "", "desc": "TYPE-C USB2.0 无 CC 芯片 DEVICE", "dts": "/* 该配置用于硬件电路不带外置 Type-C 控制器芯片，只支持 device 模式，硬件上 CC 脚需要接 5.1K 下拉电阻 */\n/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB3.0 PHY 禁用（仅使用 USB2.0） */\n&usb3phy {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器配置\n* dr_mode = \"peripheral\" 固定为 Device only\n* maximum-speed = \"high-speed\" 限制为 USB2.0 only\n* phys 只引用 usb 2.0 phy\n* snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n*/\n&usb_drd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"peripheral\";\n\tmaximum-speed = \"high-speed\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n};"},
-      {"name": "USBDRD / Type-C USB3.1 HUSB311", "node": "", "desc": "Type-C USB3.1 HUSB311", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB3.0 PHY 配置 */\n&usb3phy {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: husb311@4e {\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&husb311_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\t\tstatus = \"okay\";\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 用于操作 switch 芯片的 sel 引脚，切换 USB3.0 正反面 */\n\t\t\torientation-switch = <&gpio_sbu_mux>;\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n\tstatus = \"okay\";\n};\n\n/* 使用 GPIO 控制 USB3.0 switch 芯片，对应驱动为 drivers/usb/typec/mux/gpio-sbu-mux.c\n * 如果代码中没有该驱动，请同步最新代码或者通过FAE窗口获取相关驱动\n */\ngpio_sbu_mux: gpio-sbu-mux {\n\tcompatible = \"gpio-sbu-mux\";\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&sbu_sel_pin>;\n\tselect-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;\n};\n\n/* VBUS 控制脚和 HUSB311 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\thusb311 {\n\t\thusb311_int: husb311-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n\n\tusb-typec {\n\t\tsbu_sel_pin: sbu-sel-pin {\n\t\t\trockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
-      {"name": "USBDRD / Type-C USB3.1 FUSB302", "node": "", "desc": "Type-C USB3.1 FUSB302", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB3.0 PHY 配置 */\n&usb3phy {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 FUSB302\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: fusb302@22 {\n\t\tcompatible = \"fcs,fusb302\";\n\t\treg = <0x22>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&fusb302_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\t\tstatus = \"okay\";\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 用于操作 switch 芯片的 sel 引脚，切换 USB3.0 正反面 */\n\t\t\torientation-switch = <&gpio_sbu_mux>;\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n\tstatus = \"okay\";\n};\n\n/* 使用 GPIO 控制 USB3.0 switch 芯片，对应驱动为 drivers/usb/typec/mux/gpio-sbu-mux.c\n * 如果代码中没有该驱动，请同步最新代码或者通过FAE窗口获取相关驱动\n */\ngpio_sbu_mux: gpio-sbu-mux {\n\tcompatible = \"gpio-sbu-mux\";\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&sbu_sel_pin>;\n\tselect-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;\n};\n\n/* VBUS 控制脚和 FUSB302 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\tfusb302 {\n\t\tfusb302_int: fusb302-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n\n\tusb-typec {\n\t\tsbu_sel_pin: sbu-sel-pin {\n\t\t\trockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBDRD / Type-C USB3.1 HUSB311", "node": "", "desc": "Type-C USB3.1 HUSB311", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB3.0 PHY 配置 */\n&usb3phy {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 HUSB311\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: husb311@4e {\n\t\tstatus = \"okay\";\n\t\tcompatible = \"hynetek,husb311\";\n\t\treg = <0x4e>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&husb311_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 用于操作 switch 芯片的 sel 引脚，切换 USB3.0 正反面 */\n\t\t\torientation-switch = <&gpio_sbu_mux>;\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tstatus = \"okay\";\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* 使用 GPIO 控制 USB3.0 switch 芯片，对应驱动为 drivers/usb/typec/mux/gpio-sbu-mux.c\n * 如果代码中没有该驱动，请同步最新代码或者通过FAE窗口获取相关驱动\n */\ngpio_sbu_mux: gpio-sbu-mux {\n\tcompatible = \"gpio-sbu-mux\";\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&sbu_sel_pin>;\n\tselect-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;\n};\n\n/* VBUS 控制脚和 HUSB311 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\thusb311 {\n\t\thusb311_int: husb311-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n\n\tusb-typec {\n\t\tsbu_sel_pin: sbu-sel-pin {\n\t\t\trockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
+      {"name": "USBDRD / Type-C USB3.1 FUSB302", "node": "", "desc": "Type-C USB3.1 FUSB302", "dts": "/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置 */\n&usb2phy_otg {\n\tstatus = \"okay\";\n};\n\n/* USB3.0 PHY 配置 */\n&usb3phy {\n\tstatus = \"okay\";\n};\n\n/* USB 控制器配置\n* usb-role-switch 启用软件角色切换\n* port 节点用于 role-switch 端点绑定\n*/\n&usb_drd_dwc3 {\n\tdr_mode = \"otg\";\n\n\tusb-role-switch;\n\tport {\n\t\t#address-cells = <1>;\n\t\t#size-cells = <0>;\n\t\tdwc3_0_role_switch: endpoint@0 {\n\t\t\treg = <0>;\n\t\t\tremote-endpoint = <&usbc0_role_sw>;\n\t\t};\n\t};\n};\n\n/* 配置外置 Type-C 控制器芯片 FUSB302\n* 需要根据实际的硬件设计，配置 \"I2C / interrupts / vbus-supply / usb_con\" 的属性\n*/\n&i2c0 {\n\tstatus = \"okay\";\n\tusbc0: fusb302@22 {\n\t\tstatus = \"okay\";\n\t\tcompatible = \"fcs,fusb302\";\n\t\treg = <0x22>;\n\t\t/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */\n\t\tinterrupt-parent = <&gpio0>;\n\t\tinterrupts = <RK_PC6 IRQ_TYPE_LEVEL_LOW>;\n\t\tpinctrl-names = \"default\";\n\t\tpinctrl-0 = <&fusb302_int>;\n\t\t/*\n\t\t* VBUS 配置\n\t\t* 若 VBUS 是通过 GPIO 控制，则需要 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；\n\t\t*/\n\t\tvbus-supply = <&vcc5v0_otg>;\n\n\t\tports {\n\t\t\t#address-cells = <1>;\n\t\t\t#size-cells = <0>;\n\n\t\t\tport@0 {\n\t\t\t\treg = <0>;\n\t\t\t\tusbc0_role_sw: endpoint@0 {\n\t\t\t\t\tremote-endpoint = <&dwc3_0_role_switch>;\n\t\t\t\t};\n\t\t\t};\n\t\t};\n\n\t\tusb_con: connector {\n\t\t\tcompatible = \"usb-c-connector\";\n\t\t\tlabel = \"USB-C\";\n\t\t\tdata-role = \"dual\";\n\t\t\tpower-role = \"dual\";\n\t\t\ttry-power-role = \"sink\";\n\t\t\t/* 用于操作 switch 芯片的 sel 引脚，切换 USB3.0 正反面 */\n\t\t\torientation-switch = <&gpio_sbu_mux>;\n\t\t\t/* 充电功率 (op-sink-microwatt) = max_vol (mV) * max_cur (mA)，使用默认即可 */\n\t\t\top-sink-microwatt = <1000000>;\n\t\t\t/*\n\t\t\t* sink-pdos: <PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)>\n\t\t\t* 主板端作为 Sink 时, 主板可以支持的电压/电流列表.\n\t\t\t* 当前仅支持 5V/3A 充电，可根据硬件设计按需添加 9V~20V 高电压档位.\n\t\t\t* 如需启用 PD 快充，请先与硬件工程师确认充电 IC 和主板耐压能力后再添加.\n\t\t\t*/\n\t\t\tsink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t\t/*\n\t\t\t* source-pdos: PDO_FIXED(电压(mV), 电流(mA), PDO_FIXED_USB_COMM)\n\t\t\t*  主板端作为 Source 时,主板 vbus 可以输出的电压/电流列表,对于 RK 平台采用默认值即可\n\t\t\t*/\n\t\t\tsource-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;\n\t\t};\n\t};\n};\n\n/* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */\nvcc5v0_otg: vcc5v0-otg-regulator {\n\tstatus = \"okay\";\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vcc5v0_otg\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio0 RK_PA7 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&vcc5v0_otg_en>;\n};\n\n/* 使用 GPIO 控制 USB3.0 switch 芯片，对应驱动为 drivers/usb/typec/mux/gpio-sbu-mux.c\n * 如果代码中没有该驱动，请同步最新代码或者通过FAE窗口获取相关驱动\n */\ngpio_sbu_mux: gpio-sbu-mux {\n\tcompatible = \"gpio-sbu-mux\";\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&sbu_sel_pin>;\n\tselect-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;\n};\n\n/* VBUS 控制脚和 FUSB302 中断脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\tvcc5v0_otg_en: vcc5v0-otg-en {\n\t\t\trockchip,pins = <0 RK_PA7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n\n\tfusb302 {\n\t\tfusb302_int: fusb302-int {\n\t\t\trockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;\n\t\t};\n\t};\n\n\tusb-typec {\n\t\tsbu_sel_pin: sbu-sel-pin {\n\t\t\trockchip,pins = <3 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBDRD / Micro-USB2.0", "node": "", "desc": "Micro-USB2.0", "dts": "/* **注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态** */\n\n/* USB2.0 PHY 配置 */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY OTG 端口配置\n* vbus-supply: 控制 VBUS 输出 5V 实现 VBUS 动态开关\n*/\n&usb2phy_otg {\n\tstatus = \"okay\";\n\tvbus-supply = <&vbus5v0_typec>;\n};\n\n/* USB3.0 PHY 禁用（仅使用 USB2.0） */\n&usb3phy {\n\tstatus = \"disabled\";\n};\n\n/* USB 控制器配置\n* dr_mode=\"otg\" + extcon 才能支持软件切换 Device / Host mode\n* maximum-speed = \"high-speed\" 限制为 USB2.0 only\n* phys 只引用 usb 2.0 phy\n* snps,dis_u2_susphy_quirk: 可选项，关闭控制器硬件 suspend usb2 phy 功能\n* snps,usb2-lpm-disable: 可选项，dwc3 host mode 不支持 LPM 功能\n*/\n&usb_drd_dwc3 {\n\tstatus = \"okay\";\n\tdr_mode = \"otg\";\n\textcon = <&usb2phy>;\n\tmaximum-speed = \"high-speed\";\n\tphys = <&usb2phy_otg>;\n\tphy-names = \"usb2-phy\";\n\tsnps,dis_u2_susphy_quirk;\n\tsnps,usb2-lpm-disable;\n};\n\n/* VBUS regulator 配置，USB2.0 PHY 驱动通过 GPIO 控制 VBUS 输出 */\nvbus5v0_typec: vbus5v0-typec {\n\tcompatible = \"regulator-fixed\";\n\tregulator-name = \"vbus5v0_typec\";\n\tregulator-min-microvolt = <5000000>;\n\tregulator-max-microvolt = <5000000>;\n\tenable-active-high;\n\tgpio = <&gpio5 RK_PD6 GPIO_ACTIVE_HIGH>;\n\tvin-supply = <&vcc5v0_sys>;\n\tpinctrl-names = \"default\";\n\tpinctrl-0 = <&typec5v_pwren>;\n};\n\n/* VBUS 控制脚 pinctrl 配置 */\n&pinctrl {\n\tusb {\n\t\ttypec5v_pwren: typec5v-pwren {\n\t\t\trockchip,pins = <5 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;\n\t\t};\n\t};\n};"},
       {"name": "USBHOST / Type-A USB2.0 HOST", "node": "", "desc": "Type-A USB2.0 HOST", "dts": "/* 该配置使用 Type-A USB2.0 Host */\n\n/* USB2.0 EHCI 控制器，支持 USB2.0 */\n&usb_host_ehci {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 OHCI 控制器，支持 USB1.1/1.0 */\n&usb_host_ohci {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY 配置（与 USBDRD 共用） */\n&usb2phy {\n\tstatus = \"okay\";\n};\n\n/* USB2.0 PHY HOST 端口配置 */\n&usb2phy_host {\n\tstatus = \"okay\";\n\t/* phy-supply 属性为可选配置，VBUS 常供电方案不用配置 */\n};"},
     ]
@@ -439,7 +474,7 @@ const SOC_DATA = {
   },
 };
 
-const SOC_NAMES = ["RK3308", "RK3326", "RK3399", "RK3506", "RK3562", "RK3568", "RK3572", "RK3576", "RK3588", "PX30", "RV1126B", "RV1106B_RV1103B", "RV1106_RV1103"];
+const SOC_NAMES = ["RK312X", "RK3288", "RK3308", "RK3326", "RK3328", "RK3399", "RK3506", "RK3562", "RK3568", "RK3572", "RK3576", "RK3588", "PX30", "RV1126B", "RV1106B_RV1103B", "RV1106_RV1103"];
 
 function generateDts(socName, portIndices, kernelVer) {
     const soc = SOC_DATA[socName];
@@ -558,6 +593,377 @@ function loadSocs(filter) {
 
 // kernel-4.4 层级选项
 const K44_GROUPS = {
+    "RK312X": {
+        "4.4": [
+            {name: "USBOTG", ports: [
+                {name: "Micro-USB2.0 OTG", dts: `/* Micro-USB 座子带 ID 脚，dr_mode = "otg" 按 ID 自动切换 Host / Device */
+
+/* <b>注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态</b> */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* OTG PHY：Host 模式打开 VBUS，Device 模式关闭 */
+&u2phy_otg {
+	status = "okay";
+	vbus-supply = <&vcc5v0_otg>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例
+ * <b>注意：VBUS 由 PMIC 直接供电时不需要这颗 regulator，也不要配 vbus-supply</b>
+ */
+vcc5v0_otg: vcc5v0-otg-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_otg";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_otg_en>;
+};
+
+/* USB2.0 OTG 控制器 */
+&usb_otg {
+	status = "okay";
+	dr_mode = "otg";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb2 {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <RK_GPIO0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+                {name: "Type-A USB2.0 OTG", dts: `/* Type-A 没有 ID 脚，靠 VBUS 检测识别 Device 插入
+ * <b>注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态</b>
+ * <b>注意：要切 Host 用 otg_mode 软切换：echo host > /sys/devices/platform/20008000.syscon/20008000.syscon:usb2-phy@17c/otg_mode</b>
+ */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* OTG PHY：Host 模式输出 VBUS */
+&u2phy_otg {
+	status = "okay";
+	vbus-supply = <&vcc5v0_otg>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */
+vcc5v0_otg: vcc5v0-otg-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_otg";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_otg_en>;
+};
+
+/* USB2.0 OTG 控制器 */
+&usb_otg {
+	status = "okay";
+	dr_mode = "otg";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb2 {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <RK_GPIO0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+                {name: "Type-A USB2.0 HOST", dts: `/* 固定 Host：dr_mode = "host" */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* Host 模式要输出 VBUS，所以 OTG 口也配 vbus-supply */
+&u2phy_otg {
+	status = "okay";
+	vbus-supply = <&vcc5v0_otg>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */
+vcc5v0_otg: vcc5v0-otg-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_otg";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_otg_en>;
+};
+
+/* USB2.0 OTG 控制器固定 Host */
+&usb_otg {
+	status = "okay";
+	dr_mode = "host";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb2 {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <RK_GPIO0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+                {name: "Type-A USB2.0 DEVICE", dts: `/* 固定 Device：dr_mode = "peripheral"
+ * <b>注意：Device 模式不要配 vbus-supply；有热插拔需求时 vbus 需经分压接到 vbusdet 引脚</b>
+ */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* 只使能 OTG PHY，不配 VBUS */
+&u2phy_otg {
+	status = "okay";
+};
+
+/* USB2.0 OTG 控制器固定 Device */
+&usb_otg {
+	status = "okay";
+	dr_mode = "peripheral";
+};`},
+            ]},
+            {name: "HOST0", ports: [
+                {name: "Type-A USB2.0 HOST", dts: `/* EHCI + OHCI 共用 u2phy_host
+ * <b>注意：Host 口用 phy-supply 控 VBUS，u2phy_host 不支持 vbus-supply</b>
+ */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* Host PHY：phy-supply 由 USB core 在 phy_power_on 时打开 */
+&u2phy_host {
+	status = "okay";
+	phy-supply = <&vcc5v0_host>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A1 为例 */
+vcc5v0_host: vcc5v0-host-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_host";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA1 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_host_en>;
+};
+
+/* USB2.0 EHCI 控制器：USB2.0 高速/全速 */
+&usb_host_ehci {
+	status = "okay";
+};
+
+/* USB2.0 OHCI 控制器：USB1.1 全速/低速 */
+&usb_host_ohci {
+	status = "okay";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb2 {
+		vcc5v0_host_en: vcc5v0-host-en {
+			rockchip,pins = <RK_GPIO0 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+            ]},
+        ],
+    },
+    "RK3288": {
+        "4.4": [
+            {name: "USBOTG", ports: [
+                {name: "Type-A USB2.0 OTG", dts: `/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */
+&usbphy {
+	status = "okay";
+};
+
+/* USB PHY 子节点，对应 OTG 口 */
+&usbphy0 {
+	status = "okay";
+};
+
+/* VBUS / ID / VBUS 检测控制（GRF 寄存器 + 中断）
+ * otg_drv_gpio：OTG 口 VBUS 使能，驱动 probe 时拉低（不输出），进 Host 模式时拉高
+ * 请根据原理图修改，这里以 GPIO0_B4（即 gpio0 12）为例
+ * <b>注意：驱动用 gpio_direction_output 直接给电平，GPIO_ACTIVE_HIGH/LOW 不参与换算，1 = 输出 5V</b>
+ */
+&dwc_control_usb {
+	status = "okay";
+	otg_drv_gpio = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+};
+
+/* USB 控制器配置：dwc_otg_310 驱动
+ * rockchip,usb-mode：0 = Device/Host 双角色（按 ID/VBUS 自动切换），1 = 强制 Host，2 = 强制 Device
+ * compatible/clocks/resets 按 SDK 默认值给出，请与实际 SDK/板级确认
+ */
+&usb_otg {
+	status = "okay";
+	compatible = "rockchip,rk3288_usb20_otg";
+	clocks = <&usbphy0>, <&cru HCLK_OTG0>;
+	clock-names = "clk_usbphy0", "hclk_usb0";
+	resets = <&cru SRST_USBOTG_AHB>,
+		 <&cru SRST_USBOTG_PHY>,
+		 <&cru SRST_USBOTG_CON>;
+	reset-names = "otg_ahb", "otg_phy", "otg_controller";
+	rockchip,usb-mode = <0>;
+};`},
+                {name: "Type-A USB2.0 HOST", dts: `/* 把 OTG 口固定成 Host：dwc_otg_310 驱动用 rockchip,usb-mode = <1>
+ * dwc2 驱动路径则改成 dr_mode = "host"
+ */
+
+/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */
+&usbphy {
+	status = "okay";
+};
+
+/* USB PHY 子节点，对应 OTG 口 */
+&usbphy0 {
+	status = "okay";
+};
+
+/* Host 模式需要输出 VBUS，所以 OTG 口也要配 otg_drv_gpio，请根据原理图修改，这里以 GPIO0_B4（即 gpio0 12）为例 */
+&dwc_control_usb {
+	status = "okay";
+	otg_drv_gpio = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+};
+
+/* 强制 Host only */
+&usb_otg {
+	status = "okay";
+	rockchip,usb-mode = <1>;
+};`},
+                {name: "Type-A USB2.0 DEVICE", dts: `/* 只做 Device：dwc_otg_310 驱动用 rockchip,usb-mode = <2>
+ * <b>注意：Device 模式不要配 otg_drv_gpio，避免对外输出 5V 与外部 Host 冲突</b>
+ */
+
+/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */
+&usbphy {
+	status = "okay";
+};
+
+/* USB PHY 子节点，对应 OTG 口 */
+&usbphy0 {
+	status = "okay";
+};
+
+/* 强制 Device only */
+&usb_otg {
+	status = "okay";
+	rockchip,usb-mode = <2>;
+};`},
+                {name: "Micro-USB2.0", dts: `/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */
+&usbphy {
+	status = "okay";
+};
+
+/* USB PHY 子节点，对应 OTG 口 */
+&usbphy0 {
+	status = "okay";
+};
+
+/* VBUS / ID / VBUS 检测控制（GRF 寄存器 + 中断）
+ * otg_drv_gpio：OTG 口 VBUS 使能，驱动 probe 时拉低（不输出），进 Host 模式时拉高
+ * 请根据原理图修改，这里以 GPIO0_B4（即 gpio0 12）为例
+ * <b>注意：驱动用 gpio_direction_output 直接给电平，GPIO_ACTIVE_HIGH/LOW 不参与换算，1 = 输出 5V</b>
+ */
+&dwc_control_usb {
+	status = "okay";
+	otg_drv_gpio = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+};
+
+/* USB 控制器配置：dwc_otg_310 驱动
+ * rockchip,usb-mode：0 = Device/Host 双角色（按 ID/VBUS 自动切换），1 = 强制 Host，2 = 强制 Device
+ * compatible/clocks/resets 按 SDK 默认值给出，请与实际 SDK/板级确认
+ */
+&usb_otg {
+	status = "okay";
+	compatible = "rockchip,rk3288_usb20_otg";
+	clocks = <&usbphy0>, <&cru HCLK_OTG0>;
+	clock-names = "clk_usbphy0", "hclk_usb0";
+	resets = <&cru SRST_USBOTG_AHB>,
+		 <&cru SRST_USBOTG_PHY>,
+		 <&cru SRST_USBOTG_CON>;
+	reset-names = "otg_ahb", "otg_phy", "otg_controller";
+	rockchip,usb-mode = <0>;
+};`},
+            ]},
+            {name: "HOST0", ports: [
+                {name: "Type-A USB2.0 HOST", dts: `/* 本口 = EHCI + OHCI，两者共用 usbphy1，物理上是 HOST1 口（HOST1_DP/DM）
+ * rockchip-relinquish-port 是 RK3288 的 quirk：清 PORT_OWNER 位，把低速/全速设备交给 OHCI 处理
+ */
+
+/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */
+&usbphy {
+	status = "okay";
+};
+
+/* USB PHY 子节点，对应 EHCI/OHCI 口（物理 HOST1） */
+&usbphy1 {
+	status = "okay";
+};
+
+/* Host 口 VBUS 使能，请根据原理图修改，这里以 GPIO0_B6（即 gpio0 14）为例 */
+&dwc_control_usb {
+	host_drv_gpio = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+};
+
+/* USB2.0 EHCI 控制器，支持 USB2.0 高速/全速 */
+&usb_host0_ehci {
+	status = "okay";
+	rockchip-relinquish-port;
+};
+
+/* USB2.0 OHCI 控制器，支持 USB1.1 全速/低速设备 */
+&usb_host0_ohci {
+	status = "okay";
+};`},
+            ]},
+            {name: "HOST1", ports: [
+                {name: "Type-A USB2.0 HOST", dts: `/* 本口 = 独立 DWC2 Host-only 控制器，物理上是 HOST2 口（HOST2_DP/DM）
+ */
+
+/* USB PHY 父节点：使能后 usbphy0/1/2 才可用 */
+&usbphy {
+	status = "okay";
+};
+
+/* USB PHY 子节点，对应 DWC2 Host-only 口（物理 HOST2） */
+&usbphy2 {
+	status = "okay";
+};
+
+/* Host 口 VBUS 使能，请根据原理图修改，这里以 GPIO0_B6（即 gpio0 14）为例 */
+&dwc_control_usb {
+	host_drv_gpio = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+};
+
+/* USB 控制器配置：DWC2 Host only（dtsi 默认就是 dr_mode = "host"，保持默认即可） */
+&usb_host1 {
+	status = "okay";
+};`},
+            ]},
+        ],
+    },
     "RK3308": {
         "4.4": [
             {name: "USBOTG", ports: [
@@ -1770,6 +2176,246 @@ vcc5v0_otg: vcc5v0-otg {
 &u2phy_host {
 	status = "okay";
 	phy-supply = <&vcc5v0_host>;
+};`},
+            ]},
+        ],
+    },
+    "RK3328": {
+        "4.4": [
+            {name: "OTG20", ports: [
+                {name: "Micro-USB2.0 OTG", dts: `/* Micro-USB 座子带 ID 脚，dr_mode = "otg" 按 ID 自动切换 Host / Device */
+
+/* <b>注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态</b> */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* OTG PHY：vbus-supply 在 Host 模式打开 VBUS，Device 模式关闭 */
+&u2phy_otg {
+	status = "okay";
+	vbus-supply = <&vcc5v0_otg>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */
+vcc5v0_otg: vcc5v0-otg-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_otg";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_otg_en>;
+};
+
+/* USB2.0 OTG 控制器 */
+&usb20_otg {
+	status = "okay";
+	dr_mode = "otg";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+                {name: "Type-A USB2.0 OTG", dts: `/* <b>注意：该设计如果有热插拔需求，vbus 需要通过分压电路接到主控端的 vbusdet 引脚，用于 Device 模式时识别连接/断开状态</b> */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* OTG PHY：Host 模式输出 VBUS */
+&u2phy_otg {
+	status = "okay";
+	vbus-supply = <&vcc5v0_otg>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */
+vcc5v0_otg: vcc5v0-otg-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_otg";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_otg_en>;
+};
+
+/* USB2.0 OTG 控制器 */
+&usb20_otg {
+	status = "okay";
+	dr_mode = "otg";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+                {name: "Type-A USB2.0 HOST", dts: `/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* Host 模式要输出 VBUS，所以 OTG 口也配 vbus-supply */
+&u2phy_otg {
+	status = "okay";
+	vbus-supply = <&vcc5v0_otg>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A2 为例 */
+vcc5v0_otg: vcc5v0-otg-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_otg";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA2 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_otg_en>;
+};
+
+/* USB2.0 OTG 控制器固定 Host */
+&usb20_otg {
+	status = "okay";
+	dr_mode = "host";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb {
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <0 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+                {name: "Type-A USB2.0 DEVICE", dts: `/* <b>注意：Device 模式不要配 vbus-supply；有热插拔需求时 vbus 需经分压接到 vbusdet 引脚</b> */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* 只使能 OTG PHY，不配 VBUS */
+&u2phy_otg {
+	status = "okay";
+};
+
+/* USB2.0 OTG 控制器固定 Device */
+&usb20_otg {
+	status = "okay";
+	dr_mode = "peripheral";
+};`},
+            ]},
+            {name: "HOST0", ports: [
+                {name: "Type-A USB2.0 HOST", dts: `/* EHCI + OHCI 共用 u2phy_host
+ * <b>注意：Host 口用 phy-supply 控 VBUS，u2phy_host 不支持 vbus-supply</b>
+ */
+
+/* USB2.0 PHY 父节点 */
+&u2phy {
+	status = "okay";
+};
+
+/* Host PHY：phy-supply 由 USB core 在 phy_power_on 时打开 */
+&u2phy_host {
+	status = "okay";
+	phy-supply = <&vcc5v0_host>;
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_D0 为例 */
+vcc5v0_host: vcc5v0-host-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_host";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PD0 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_host_en>;
+};
+
+/* USB2.0 EHCI 控制器：USB2.0 高速/全速 */
+&usb_host0_ehci {
+	status = "okay";
+};
+
+/* USB2.0 OHCI 控制器：USB1.1 全速/低速 */
+&usb_host0_ohci {
+	status = "okay";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb {
+		vcc5v0_host_en: vcc5v0-host-en {
+			rockchip,pins = <0 RK_PD0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};`},
+            ]},
+            {name: "USB30", ports: [
+                {name: "Type-A USB3.0 HOST", dts: `/* Type-A 座子只能做 Host
+ * u3phy_utmi 走 USB2.0 差分，u3phy_pipe 走 USB3.0 超速差分，两个子节点都要使能
+ */
+
+/* USB3.0 PHY 父节点：vbus-supply 在 phy_power_on 时打开 VBUS */
+&u3phy {
+	status = "okay";
+	vbus-supply = <&vcc5v0_usb30>;
+};
+
+/* USB3.0 PHY 的 UTMI（USB2.0 部分）子节点 */
+&u3phy_utmi {
+	status = "okay";
+};
+
+/* USB3.0 PHY 的 PIPE（USB3.0 部分）子节点 */
+&u3phy_pipe {
+	status = "okay";
+};
+
+/* VBUS 5V regulator，请根据原理图修改，这里以 GPIO0_A0 为例 */
+vcc5v0_usb30: vcc5v0-usb30-regulator {
+	compatible = "regulator-fixed";
+	regulator-name = "vcc5v0_usb30";
+	regulator-min-microvolt = <5000000>;
+	regulator-max-microvolt = <5000000>;
+	enable-active-high;
+	gpio = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&vcc5v0_usb30_en>;
+};
+
+/* USB3.0 控制器（DWC3）父节点 */
+&usbdrd3 {
+	status = "okay";
+};
+
+/* DWC3 控制器：默认就是 host，Type-A 保持默认 */
+&usbdrd_dwc3 {
+	status = "okay";
+	dr_mode = "host";
+};
+
+/* VBUS 控制脚 pinctrl 配置 */
+&pinctrl {
+	usb {
+		vcc5v0_usb30_en: vcc5v0-usb30-en {
+			rockchip,pins = <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 };`},
             ]},
         ],
@@ -7653,11 +8299,11 @@ vcc_otg_vbus: otg-vbus-regulator {
  * 硬件对 VBUS 做了三极管反相处理，所以必须配成 GPIO_ACTIVE_LOW
  */
 extcon_usb: extcon-usb {
+	status = "okay";
 	compatible = "linux,extcon-usb-gpio";
 	vbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb_extcon_vbus>;
-	status = "okay";
 };
 
 /* VBUS 5V regulator 配置
@@ -7679,8 +8325,8 @@ vcc5v0_otg0: vcc5v0-otg0-regulator {
  * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态
  */
 &usb2phy {
-	extcon = <&extcon_usb>;
 	status = "okay";
+	extcon = <&extcon_usb>;
 };
 
 /* USB2.0 PHY OTG 端口配置
@@ -7768,19 +8414,19 @@ vcc5v0_otg0: vcc5v0-otg0-regulator {
  * 不做这路检测（改用 rockchip,vbus-always-on）时，Device 模式识别不到拔出
  */
 extcon_usb: extcon-usb {
+	status = "okay";
 	compatible = "linux,extcon-usb-gpio";
 	vbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb_extcon_vbus>;
-	status = "okay";
 };
 
 /* USB2.0 PHY 父节点
  * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态
  */
 &usb2phy {
-	extcon = <&extcon_usb>;
 	status = "okay";
+	extcon = <&extcon_usb>;
 };
 
 /* USB2.0 PHY OTG 端口配置
@@ -7842,12 +8488,12 @@ extcon_usb: extcon-usb {
  * 且 pinctrl-names 必须写成 "default"，否则上拉配置不生效
  */
 extcon_usb: extcon-usb {
+	status = "okay";
 	compatible = "linux,extcon-usb-gpio";
 	vbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;
 	id-gpio = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb_extcon_vbus &usb_extcon_id>;
-	status = "okay";
 };
 
 /* VBUS 5V regulator 配置
@@ -7869,8 +8515,8 @@ vcc5v0_otg0: vcc5v0-otg0-regulator {
  * extcon：GPIO 检测到的 VBUS / ID 状态交给 usb2phy 驱动
  */
 &usb2phy {
-	extcon = <&extcon_usb>;
 	status = "okay";
+	extcon = <&extcon_usb>;
 };
 
 /* USB2.0 PHY OTG 端口配置
@@ -7921,12 +8567,12 @@ vcc5v0_otg0: vcc5v0-otg0-regulator {
  * 且 pinctrl-names 必须写成 "default"，否则上拉配置不生效
  */
 extcon_usb: extcon-usb {
+	status = "okay";
 	compatible = "linux,extcon-usb-gpio";
 	vbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;
 	id-gpio = <&gpio3 RK_PB4 GPIO_ACTIVE_HIGH>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb_extcon_vbus &usb_extcon_id>;
-	status = "okay";
 };
 
 /* VBUS 5V regulator 配置
@@ -7948,8 +8594,8 @@ vcc5v0_otg0: vcc5v0-otg0-regulator {
  * extcon：GPIO 检测到的 VBUS / ID 状态交给 usb2phy 驱动
  */
 &usb2phy {
-	extcon = <&extcon_usb>;
 	status = "okay";
+	extcon = <&extcon_usb>;
 };
 
 /* USB2.0 PHY OTG 端口配置
@@ -7999,19 +8645,19 @@ vcc5v0_otg0: vcc5v0-otg0-regulator {
  * 不做这路检测（改用 rockchip,vbus-always-on）时，Device 模式识别不到拔出
  */
 extcon_usb: extcon-usb {
+	status = "okay";
 	compatible = "linux,extcon-usb-gpio";
 	vbus-gpio = <&gpio1 RK_PC5 GPIO_ACTIVE_LOW>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb_extcon_vbus>;
-	status = "okay";
 };
 
 /* USB2.0 PHY 父节点
  * extcon：把 GPIO 检测到的 VBUS 状态交给 usb2phy 驱动，由它判断插拔状态
  */
 &usb2phy {
-	extcon = <&extcon_usb>;
 	status = "okay";
+	extcon = <&extcon_usb>;
 };
 
 /* USB2.0 PHY OTG 端口配置
@@ -8416,6 +9062,7 @@ vcc5v0_usb_otg: vcc5v0-usb-otg {
 	status = "okay";
 
 	usbc0: fusb302@22 {
+		status = "okay";
 		compatible = "fcs,fusb302";
 		reg = <0x22>;
 		/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO1_C7 为例 */
@@ -8430,7 +9077,6 @@ vcc5v0_usb_otg: vcc5v0-usb-otg {
 		 * 若 VBUS 由 RK818 / BQ25700 等其他 charge IC 直出，可不配置 vbus-supply。
 		 */
 		vbus-supply = <&otg_switch>;
-		status = "okay";
 
 		ports {
 			#address-cells = <1>;
@@ -14618,9 +15264,10 @@ vcc5v0_otg: vcc5v0-otg {
  * usbc1_role_sw 的 remote-endpoint 需指向 <&dwc3_1_role_switch>
  */
 &i2c2 {
-	pinctrl-0 = <&i2c2m0_xfer>;
 	status = "okay";
+	pinctrl-0 = <&i2c2m0_xfer>;
 	usbc1: husb311@4e {
+		status = "okay";
 		compatible = "hynetek,husb311";
 		reg = <0x4e>;
         /* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_A5 为例 */
@@ -14636,7 +15283,6 @@ vcc5v0_otg: vcc5v0-otg {
 		 * 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vbus5v1_typec> 配置；
 		 */
 		vbus-supply = <&vbus5v1_typec>;
-		status = "okay";
 
 		port {
 			usbc1_role_sw: endpoint {
@@ -14989,9 +15635,10 @@ index 000000000000..6d750a70dde9
  * usbc1_role_sw 的 remote-endpoint 需指向 <&dwc3_1_role_switch>
  */
 &i2c2 {
-	pinctrl-0 = <&i2c2m0_xfer>;
 	status = "okay";
+	pinctrl-0 = <&i2c2m0_xfer>;
 	usbc1: husb311@4e {
+		status = "okay";
 		compatible = "hynetek,husb311";
 		reg = <0x4e>;
         /* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_A5 为例 */
@@ -15005,7 +15652,6 @@ index 000000000000..6d750a70dde9
 		 * 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vbus5v1_typec> 配置；
 		 */
 		vbus-supply = <&vbus5v1_typec>;
-		status = "okay";
 
 		port {
 			usbc1_role_sw: endpoint {
@@ -25204,6 +25850,7 @@ vbus5v0_typec: vbus5v0-typec {
 &i2c0 {
 	status = "okay";
 	usbc0: husb311@4e {
+		status = "okay";
 		compatible = "hynetek,husb311";
 		reg = <0x4e>;
 		/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */
@@ -25217,7 +25864,6 @@ vbus5v0_typec: vbus5v0-typec {
 		* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；
 		*/
 		vbus-supply = <&vcc5v0_otg>;
-		status = "okay";
 
 		ports {
 			#address-cells = <1>;
@@ -25257,6 +25903,7 @@ vbus5v0_typec: vbus5v0-typec {
 
 /* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */
 vcc5v0_otg: vcc5v0-otg-regulator {
+	status = "okay";
 	compatible = "regulator-fixed";
 	regulator-name = "vcc5v0_otg";
 	regulator-min-microvolt = <5000000>;
@@ -25266,7 +25913,6 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 	vin-supply = <&vcc5v0_sys>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&vcc5v0_otg_en>;
-	status = "okay";
 };
 
 /* VBUS 控制脚和 HUSB311 中断脚 pinctrl 配置 */
@@ -25322,6 +25968,7 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 &i2c0 {
 	status = "okay";
 	usbc0: fusb302@22 {
+		status = "okay";
 		compatible = "fcs,fusb302";
 		reg = <0x22>;
 		/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */
@@ -25335,7 +25982,6 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 		* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；
 		*/
 		vbus-supply = <&vcc5v0_otg>;
-		status = "okay";
 
 		ports {
 			#address-cells = <1>;
@@ -25375,6 +26021,7 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 
 /* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */
 vcc5v0_otg: vcc5v0-otg-regulator {
+	status = "okay";
 	compatible = "regulator-fixed";
 	regulator-name = "vcc5v0_otg";
 	regulator-min-microvolt = <5000000>;
@@ -25384,7 +26031,6 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 	vin-supply = <&vcc5v0_sys>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&vcc5v0_otg_en>;
-	status = "okay";
 };
 
 /* VBUS 控制脚和 FUSB302 中断脚 pinctrl 配置 */
@@ -25472,6 +26118,7 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 &i2c0 {
 	status = "okay";
 	usbc0: husb311@4e {
+		status = "okay";
 		compatible = "hynetek,husb311";
 		reg = <0x4e>;
 		/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */
@@ -25485,7 +26132,6 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 		* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；
 		*/
 		vbus-supply = <&vcc5v0_otg>;
-		status = "okay";
 
 		ports {
 			#address-cells = <1>;
@@ -25527,6 +26173,7 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 
 /* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */
 vcc5v0_otg: vcc5v0-otg-regulator {
+	status = "okay";
 	compatible = "regulator-fixed";
 	regulator-name = "vcc5v0_otg";
 	regulator-min-microvolt = <5000000>;
@@ -25536,7 +26183,6 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 	vin-supply = <&vcc5v0_sys>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&vcc5v0_otg_en>;
-	status = "okay";
 };
 
 /* 使用 GPIO 控制 USB3.0 switch 芯片，对应驱动为 drivers/usb/typec/mux/gpio-sbu-mux.c
@@ -25608,6 +26254,7 @@ gpio_sbu_mux: gpio-sbu-mux {
 &i2c0 {
 	status = "okay";
 	usbc0: fusb302@22 {
+		status = "okay";
 		compatible = "fcs,fusb302";
 		reg = <0x22>;
 		/* 中断 GPIO 配置，请根据原理图设计进行相应修改，这里以 GPIO0_C6 为例 */
@@ -25621,7 +26268,6 @@ gpio_sbu_mux: gpio-sbu-mux {
 		* 若 VBUS 是 RK817 / RK818 / BQ25700 / 其他 charge IC 输出，则无需 vbus-supply = <&vcc5v0_otg> 配置；
 		*/
 		vbus-supply = <&vcc5v0_otg>;
-		status = "okay";
 
 		ports {
 			#address-cells = <1>;
@@ -25663,6 +26309,7 @@ gpio_sbu_mux: gpio-sbu-mux {
 
 /* VBUS GPIO 配置，在 Type-C 控制器芯片驱动中控制该 GPIO */
 vcc5v0_otg: vcc5v0-otg-regulator {
+	status = "okay";
 	compatible = "regulator-fixed";
 	regulator-name = "vcc5v0_otg";
 	regulator-min-microvolt = <5000000>;
@@ -25672,7 +26319,6 @@ vcc5v0_otg: vcc5v0-otg-regulator {
 	vin-supply = <&vcc5v0_sys>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&vcc5v0_otg_en>;
-	status = "okay";
 };
 
 /* 使用 GPIO 控制 USB3.0 switch 芯片，对应驱动为 drivers/usb/typec/mux/gpio-sbu-mux.c
@@ -26129,8 +26775,11 @@ vcc5v0_usb: vcc5v0-usb {
 };
 
 const SOC_USB_INFO = {
+    "RK312X": "USBOTG(USB2.0): DWC2<br>HOST0(USB2.0): EHCI + OHCI",
+    "RK3288": "USBOTG(USB2.0): DWC2<br>HOST0(USB2.0): EHCI + OHCI<br>HOST1(USB2.0): DWC2",
     "RK3308": "USBOTG(USB2.0): DWC2<br>USBHOST(USB2.0): EHCI + OHCI",
     "RK3326": "USBOTG(USB2.0): DWC2<br>USBHOST(USB2.0): EHCI + OHCI",
+    "RK3328": "OTG20(USB2.0): DWC2<br>HOST0(USB2.0): EHCI + OHCI<br>USB30(USB3.0): DWC3",
     "RK3399": "TYPEC0(USB3.1): DWC3<br>TYPEC1(USB3.1): DWC3<br>HOST0(USB2.0): EHCI + OHCI<br>HOST1(USB2.0): EHCI + OHCI",
     "RK3506": "USBOTG0(USB2.0): DWC2<br>USBOTG1(USB2.0): DWC2",
     "RK3562": "OTG0(USB3.1): DWC3<br>HOST1(USB2.0): EHCI + OHCI",
